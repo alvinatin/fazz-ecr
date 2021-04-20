@@ -19,7 +19,7 @@ type cacheItem struct {
 func loadCache() cache {
 	var ret cache
 	if err := cachedir.LoadJSONFile(cacheFileName, &ret); err != nil {
-		return nil
+		return make(cache)
 	}
 
 	var expList []string
@@ -37,9 +37,5 @@ func loadCache() cache {
 }
 
 func (c cache) save() {
-	if c == nil {
-		c = make(cache)
-	}
-
 	cachedir.SaveJSONFile(cacheFileName, c)
 }

@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"os"
-	"time"
 
 	"github.com/payfazz/go-errors"
+
+	"github.com/payfazz/fazz-ecr/util/randstring"
 )
 
 func Read(filename string, v interface{}) error {
@@ -30,7 +30,7 @@ func Write(filename string, v interface{}) error {
 		return errors.Wrap(err)
 	}
 
-	tempFileName := fmt.Sprintf("%s-%d-%d", filename, time.Now().UnixNano(), uint8(rand.Int()))
+	tempFileName := fmt.Sprintf("%s-%s", filename, randstring.Get(10))
 	if err := ioutil.WriteFile(tempFileName, data, 0o600); err != nil {
 		os.Remove(tempFileName)
 		return err

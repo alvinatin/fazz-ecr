@@ -4,8 +4,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/payfazz/fazz-ecr/util/jsonfile"
 	"github.com/payfazz/go-errors"
+
+	"github.com/payfazz/fazz-ecr/util/jsonfile"
 )
 
 var cacheDirName = "fazz-ecr"
@@ -16,7 +17,10 @@ func getCacheFilePath(filename string) (string, error) {
 		return "", errors.Wrap(err)
 	}
 
-	return filepath.Join(cacheDir, cacheDirName, filename), nil
+	dir := filepath.Join(cacheDir, cacheDirName)
+	os.MkdirAll(dir, 0o700)
+
+	return filepath.Join(dir, filename), nil
 }
 
 func LoadJSONFile(filename string, v interface{}) error {

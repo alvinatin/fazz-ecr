@@ -19,3 +19,12 @@ func openBrowser(url string) {
 		fmt.Fprintf(os.Stderr, "please open this link on your web browser\n%s\n", url)
 	}
 }
+
+func inArray(what string, data []string) bool {
+	for _, v := range data {
+		if v == what {
+			return true
+		}
+	}
+	return false
+}
