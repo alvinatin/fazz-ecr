@@ -14,6 +14,8 @@ github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHW
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=
 github.com/payfazz/go-errors v0.0.0-20200721073742-c8f2680ff093 h1:YfuC0qjV9ZUMRpu1sojU2XYce+PURs0BMI5UW7hs6T4=
 github.com/payfazz/go-errors v0.0.0-20200721073742-c8f2680ff093/go.mod h1:o9dYtN6JBrBzwiG1Mtr2P2Urbm4wOQ1HG+AWhyYcKNI=
+github.com/payfazz/go-errors v1.0.0 h1:5SRsb9p2/x/ZVC7ii012CllJaQfhd3nPwfzV5pC56zg=
+github.com/payfazz/go-errors v1.0.0/go.mod h1:cXcQv9OG/PSeeBMwoqotSeYLIc12xtHdL71LxocpABg=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=

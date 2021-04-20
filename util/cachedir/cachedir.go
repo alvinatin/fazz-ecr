@@ -2,9 +2,10 @@ package cachedir
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/payfazz/fazz-ecr/util/jsonfile"
+	"github.com/payfazz/go-errors"
 )
 
 var cacheDirName = "fazz-ecr"
@@ -12,16 +13,16 @@ var cacheDirName = "fazz-ecr"
 func getCacheFilePath(filename string) (string, error) {
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err)
 	}
 
-	return path.Join(cacheDir, cacheDirName, filename), nil
+	return filepath.Join(cacheDir, cacheDirName, filename), nil
 }
 
 func LoadJSONFile(filename string, v interface{}) error {
 	fullfilename, err := getCacheFilePath(filename)
 	if err != nil {
-		return err
+		return errors.Wrap(err)
 	}
 
 	return jsonfile.Read(fullfilename, v)
@@ -30,7 +31,7 @@ func LoadJSONFile(filename string, v interface{}) error {
 func SaveJSONFile(filename string, v interface{}) error {
 	fullfilename, err := getCacheFilePath(filename)
 	if err != nil {
-		return err
+		return errors.Wrap(err)
 	}
 
 	return jsonfile.Write(fullfilename, v)
