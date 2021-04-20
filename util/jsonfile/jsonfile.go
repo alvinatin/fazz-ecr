@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func ReadFile(filename string, v interface{}) error {
+func Read(filename string, v interface{}) error {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
@@ -18,14 +18,14 @@ func ReadFile(filename string, v interface{}) error {
 	return json.Unmarshal(data, v)
 }
 
-func WriteFile(filename string, v interface{}) error {
+func Write(filename string, v interface{}) error {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
 
 	tempFileName := fmt.Sprintf("%s-%d-%d", filename, time.Now().UnixNano(), uint8(rand.Int()))
-	if err := ioutil.WriteFile(tempFileName, data, 0o644); err != nil {
+	if err := ioutil.WriteFile(tempFileName, data, 0o600); err != nil {
 		os.Remove(tempFileName)
 		return err
 	}
