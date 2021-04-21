@@ -1,15 +1,20 @@
 package main
 
 import (
-	stderrors "errors"
+	"fmt"
+	"strings"
 
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/payfazz/go-errors"
+
+	"github.com/payfazz/fazz-ecr/util/oidctoken"
 )
 
-var errNotImplemented = stderrors.New("not implemented")
+var errNotImplemented = fmt.Errorf("not implemented")
 
-func main() { credentials.Serve(h{}) }
+func main() {
+	credentials.Serve(h{})
+}
 
 type h struct{}
 
@@ -41,6 +46,32 @@ func (h) Get(serverURL string) (string, string, error) {
 		return item.User, item.Pass, nil
 	}
 
-	// TODO
-	return "", "", errors.Wrap(errNotImplemented)
+	processToken := func(IDToken string) (string, error) {
+		result, err := exchageToken(IDToken)
+		if err != nil {
+			return "", errors.Wrap(err)
+		}
+
+		cache[serverURL] = result
+		cache.save()
+
+		var resp strings.Builder
+		fmt.Fprintf(&resp, "docker-credential-fazz-ecr\n")
+		fmt.Fprintf(&resp, "==========================\n")
+		fmt.Fprintf(&resp, "\nYou are now logged in into registry %s\n", strings.TrimPrefix(serverURL, "https://"))
+		fmt.Fprintf(&resp, "\nYou should have push/pull permission for following repositories:\n")
+		for _, v := range result.Access {
+			fmt.Fprintf(&resp, "- %s\n", v)
+		}
+		fmt.Fprintf(&resp, "\nYou can now close this window\n")
+
+		return resp.String(), nil
+	}
+
+	if err := oidctoken.GetToken(processToken); err != nil {
+		return "", "", errors.Wrap(err)
+	}
+
+	item := cache[serverURL]
+	return item.User, item.Pass, nil
 }

@@ -13,6 +13,8 @@ var (
 	OIDCIssuer       = "https://dex.fazzfinancial.com"
 	OIDCClientID     = "ecrhelper"
 	OIDCCallbackPort = 3000
+
+	IDTokenExchangeEndpoint = "https://9djfz7zb34.execute-api.ap-southeast-1.amazonaws.com/docker-login"
 )
 
 func init() {
