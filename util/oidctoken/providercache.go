@@ -13,7 +13,7 @@ import (
 	"github.com/payfazz/fazz-ecr/util/cachedir"
 )
 
-var providerCacheFileName = "oidc.json"
+var providerCacheFileName = "oidc-provider.json"
 
 type providerCache map[string]providerCacheItem
 
@@ -105,19 +105,19 @@ func (c providerCache) ensure(issuer string) error {
 	}
 
 	if !inArray("code", config.RespType) {
-		return errors.Errorf("oidc config doesn't support \"code\"")
+		return errors.Errorf("oidc config doesn't support \"code\" response_type")
 	}
 
 	for _, v := range []string{"email", "openid", "groups"} {
 		if !inArray(v, config.Scopes) {
-			return errors.Errorf("oidc scopes doesn't support \"%s\"", v)
+			return errors.Errorf("oidc scopes doesn't support \"%s\" scope", v)
 		}
 	}
 
 	c[issuer] = providerCacheItem{
 		AuthURL:  config.AuthURL,
 		TokenURL: config.TokenURL,
-		Exp:      time.Now().Add(1 * time.Hour).Unix(),
+		Exp:      time.Now().Add(24 * time.Hour).Unix(),
 	}
 
 	c.save()
@@ -131,12 +131,14 @@ func (c providerCache) getAuthUri(issuer string, clientID string, redirectURI st
 	}
 
 	u, _ := url.Parse(c[issuer].AuthURL)
+
 	q := u.Query()
 	q.Set("client_id", clientID)
 	q.Set("response_type", "code")
 	q.Set("redirect_uri", redirectURI)
 	q.Set("scope", "openid email groups")
 	q.Set("state", state)
+
 	u.RawQuery = q.Encode()
 	return u.String(), nil
 }
@@ -151,6 +153,7 @@ func (c providerCache) getIDToken(issuer string, clientID string, redirectURI st
 	q.Set("grant_type", "authorization_code")
 	q.Set("redirect_uri", redirectURI)
 	q.Set("code", code)
+
 	resp, err := http.Post(
 		c[issuer].TokenURL,
 		"application/x-www-form-urlencoded",

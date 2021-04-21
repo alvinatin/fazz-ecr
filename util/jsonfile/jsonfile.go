@@ -33,8 +33,12 @@ func Write(filename string, v interface{}) error {
 	tempFileName := fmt.Sprintf("%s-%s", filename, randstring.Get(10))
 	if err := ioutil.WriteFile(tempFileName, data, 0o600); err != nil {
 		os.Remove(tempFileName)
-		return err
+		return errors.Wrap(err)
 	}
 
-	return os.Rename(tempFileName, filename)
+	if err := os.Rename(tempFileName, filename); err != nil {
+		return errors.Wrap(err)
+	}
+
+	return nil
 }
