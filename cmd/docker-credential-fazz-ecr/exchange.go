@@ -27,7 +27,7 @@ func exchageToken(IDToken string) (types.Cred, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return types.Cred{}, errors.Errorf("exchange token endpoint not returning 200")
+		return types.Cred{}, errors.Errorf("exchange endpoint not returning 200")
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&cred); err != nil {
@@ -35,7 +35,7 @@ func exchageToken(IDToken string) (types.Cred, error) {
 	}
 
 	if cred.User == "" || cred.Pass == "" {
-		return types.Cred{}, errors.Errorf("cred username or password is empty")
+		return types.Cred{}, errors.Errorf("username or password is empty from exchange endpoint")
 	}
 
 	return cred, nil
