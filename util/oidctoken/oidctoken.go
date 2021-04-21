@@ -14,31 +14,26 @@ import (
 	"github.com/payfazz/go-handler/defresponse"
 	"gopkg.in/square/go-jose.v2"
 
+	"github.com/payfazz/fazz-ecr/config"
 	"github.com/payfazz/fazz-ecr/util/randstring"
-)
-
-var (
-	oidcIssuer       = "https://dex.fazzfinancial.com"
-	oidcClientID     = "ecrhelper"
-	oidcCallbackPort = 3000
 )
 
 func GetToken(callback func(string) (string, error)) error {
 	tokenCache := loadTokenCache()
 
-	if v, ok := tokenCache[oidcIssuer]; ok {
+	if v, ok := tokenCache[config.OIDCIssuer]; ok {
 		callback(v.IDToken)
 		return nil
 	}
 
 	providerCache := loadProviderCache()
 
-	errCh := make(chan error)
+	errCh := make(chan error, 1)
 
-	redirectURI := fmt.Sprintf("http://localhost:%d", oidcCallbackPort)
+	redirectURI := fmt.Sprintf("http://localhost:%d", config.OIDCCallbackPort)
 	state := randstring.Get(16)
 
-	callbackServer := http.Server{Addr: fmt.Sprintf("localhost:%d", oidcCallbackPort)}
+	callbackServer := http.Server{Addr: fmt.Sprintf("localhost:%d", config.OIDCCallbackPort)}
 
 	handled := uint32(0)
 
@@ -62,27 +57,24 @@ func GetToken(callback func(string) (string, error)) error {
 
 		go shutdown()
 
-		token, err := providerCache.getIDToken(oidcIssuer, oidcClientID, redirectURI, r.URL.Query().Get("code"))
+		token, err := providerCache.getIDToken(config.OIDCIssuer, config.OIDCClientID, redirectURI, r.URL.Query().Get("code"))
 		if err != nil {
-			errCh <- errors.Wrap(err)
-			return defresponse.Status(500)
+			return errResponse(errCh, errors.Wrap(err))
 		}
 
 		jwt, err := jose.ParseSigned(token)
 		if err != nil {
-			errCh <- errors.Wrap(err)
-			return defresponse.Status(500)
+			return errResponse(errCh, errors.Wrap(err))
 		}
 
 		var jwtBody struct {
 			Exp int64 `json:"exp"`
 		}
 		if err := json.Unmarshal(jwt.UnsafePayloadWithoutVerification(), &jwtBody); err != nil {
-			errCh <- errors.Wrap(err)
-			return defresponse.Status(500)
+			return errResponse(errCh, errors.Wrap(err))
 		}
 
-		tokenCache[oidcIssuer] = tokenCacheItem{
+		tokenCache[config.OIDCIssuer] = tokenCacheItem{
 			IDToken: token,
 			Exp:     jwtBody.Exp,
 		}
@@ -90,14 +82,13 @@ func GetToken(callback func(string) (string, error)) error {
 
 		res, err := callback(token)
 		if err != nil {
-			errCh <- errors.Wrap(err)
-			return defresponse.Status(500)
+			return errResponse(errCh, errors.Wrap(err))
 		}
 
 		return defresponse.Text(200, res)
 	})
 
-	authURI, err := providerCache.getAuthUri(oidcIssuer, oidcClientID, redirectURI, state)
+	authURI, err := providerCache.getAuthUri(config.OIDCIssuer, config.OIDCClientID, redirectURI, state)
 	if err != nil {
 		return errors.Wrap(err)
 	}

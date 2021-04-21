@@ -3,10 +3,9 @@ package oidctoken
 import (
 	"time"
 
-	"github.com/payfazz/fazz-ecr/util/cachedir"
+	"github.com/payfazz/fazz-ecr/config"
+	"github.com/payfazz/fazz-ecr/util/jsonfile"
 )
-
-var tokenCacheFileName = "oidc-token.json"
 
 type tokenCache map[string]tokenCacheItem
 
@@ -17,7 +16,7 @@ type tokenCacheItem struct {
 
 func loadTokenCache() tokenCache {
 	var ret tokenCache
-	if err := cachedir.LoadJSONFile(tokenCacheFileName, &ret); err != nil {
+	if err := jsonfile.Read(config.CacheFileOIDCToken, &ret); err != nil {
 		return make(tokenCache)
 	}
 
@@ -36,5 +35,5 @@ func loadTokenCache() tokenCache {
 }
 
 func (c tokenCache) save() {
-	cachedir.SaveJSONFile(tokenCacheFileName, c)
+	jsonfile.Write(config.CacheFileOIDCToken, c)
 }

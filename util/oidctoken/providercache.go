@@ -10,10 +10,9 @@ import (
 
 	"github.com/payfazz/go-errors"
 
-	"github.com/payfazz/fazz-ecr/util/cachedir"
+	"github.com/payfazz/fazz-ecr/config"
+	"github.com/payfazz/fazz-ecr/util/jsonfile"
 )
-
-var providerCacheFileName = "oidc-provider.json"
 
 type providerCache map[string]providerCacheItem
 
@@ -25,7 +24,7 @@ type providerCacheItem struct {
 
 func loadProviderCache() providerCache {
 	var ret providerCache
-	if err := cachedir.LoadJSONFile(providerCacheFileName, &ret); err != nil {
+	if err := jsonfile.Read(config.CacheFileOIDCProvider, &ret); err != nil {
 		return make(providerCache)
 	}
 
@@ -44,7 +43,7 @@ func loadProviderCache() providerCache {
 }
 
 func (c providerCache) save() {
-	cachedir.SaveJSONFile(providerCacheFileName, c)
+	jsonfile.Write(config.CacheFileOIDCProvider, c)
 }
 
 func (c providerCache) ensure(issuer string) error {

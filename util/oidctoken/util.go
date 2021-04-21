@@ -5,6 +5,10 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+
+	"github.com/payfazz/go-errors"
+	"github.com/payfazz/go-handler"
+	"github.com/payfazz/go-handler/defresponse"
 )
 
 func openBrowser(url string) {
@@ -27,4 +31,9 @@ func inArray(what string, data []string) bool {
 		}
 	}
 	return false
+}
+
+func errResponse(errCh chan<- error, err error) handler.Response {
+	errCh <- errors.Wrap(err)
+	return defresponse.Text(500, errors.Format(err))
 }
