@@ -35,5 +35,5 @@ func inArray(what string, data []string) bool {
 
 func errResponse(errCh chan<- error, err error) handler.Response {
 	errCh <- errors.Wrap(err)
-	return defresponse.Text(500, errors.Format(err))
+	return defresponse.Text(500, "Error: "+err.Error())
 }

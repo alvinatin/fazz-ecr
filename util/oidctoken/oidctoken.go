@@ -22,7 +22,9 @@ func GetToken(callback func(string) (string, error)) error {
 	tokenCache := loadTokenCache()
 
 	if v, ok := tokenCache[config.OIDCIssuer]; ok {
-		callback(v.IDToken)
+		if _, err := callback(v.IDToken); err != nil {
+			return errors.Wrap(err)
+		}
 		return nil
 	}
 
@@ -85,6 +87,7 @@ func GetToken(callback func(string) (string, error)) error {
 			return errResponse(errCh, errors.Wrap(err))
 		}
 
+		errCh <- nil
 		return defresponse.Text(200, res)
 	})
 
@@ -96,8 +99,6 @@ func GetToken(callback func(string) (string, error)) error {
 	go func() {
 		if err := callbackServer.ListenAndServe(); err != http.ErrServerClosed {
 			errCh <- errors.Wrap(err)
-		} else {
-			errCh <- nil
 		}
 	}()
 
