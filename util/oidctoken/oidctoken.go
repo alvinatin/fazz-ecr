@@ -2,9 +2,11 @@ package oidctoken
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -12,7 +14,6 @@ import (
 	"github.com/payfazz/go-errors"
 	"github.com/payfazz/go-handler"
 	"github.com/payfazz/go-handler/defresponse"
-	"gopkg.in/square/go-jose.v2"
 
 	"github.com/payfazz/fazz-ecr/config"
 	"github.com/payfazz/fazz-ecr/util/randstring"
@@ -64,7 +65,12 @@ func GetToken(callback func(string) (string, error)) error {
 			return errResponse(errCh, errors.Wrap(err))
 		}
 
-		jwt, err := jose.ParseSigned(token)
+		tokenParts := strings.Split(token, ".")
+		if len(tokenParts) < 2 {
+			return errResponse(errCh, errors.Errorf("invalid token from oidc"))
+		}
+
+		jwtBodyRaw, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
 		if err != nil {
 			return errResponse(errCh, errors.Wrap(err))
 		}
@@ -72,7 +78,7 @@ func GetToken(callback func(string) (string, error)) error {
 		var jwtBody struct {
 			Exp int64 `json:"exp"`
 		}
-		if err := json.Unmarshal(jwt.UnsafePayloadWithoutVerification(), &jwtBody); err != nil {
+		if err := json.Unmarshal(jwtBodyRaw, &jwtBody); err != nil {
 			return errResponse(errCh, errors.Wrap(err))
 		}
 
