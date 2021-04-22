@@ -3,3 +3,19 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+tmpdir=$PWD/tmp/fazz-ecr-aws-lambda
+
+rm -rf "$tmpdir"
+mkdir -p "$tmpdir"
+
+echo ">>> compiling code"
+CGO_ENABLED=0 go build -o "$tmpdir/bootstrap" -tags lambda.norpc ./cmd/fazz-ecr-aws-lambda > /dev/null
+
+cd "$tmpdir"
+
+echo ">>> zip"
+zip package.zip bootstrap > /dev/null
+
+echo ">>> update function code"
+aws lambda update-function-code --function-name fazz-ecr --zip-file fileb://package.zip > /dev/null
+

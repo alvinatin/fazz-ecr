@@ -20,7 +20,7 @@ var (
 func init() {
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
-		panic(err)
+		cacheDir = os.TempDir()
 	}
 
 	cacheDir = filepath.Join(cacheDir, "fazz-ecr")
