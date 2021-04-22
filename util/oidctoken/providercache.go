@@ -107,7 +107,7 @@ func (c providerCache) ensure(issuer string) error {
 		return errors.Errorf("oidc config doesn't support \"code\" response_type")
 	}
 
-	for _, v := range []string{"email", "openid", "groups"} {
+	for _, v := range []string{"openid", "email", "groups"} {
 		if !inArray(v, config.Scopes) {
 			return errors.Errorf("oidc scopes doesn't support \"%s\" scope", v)
 		}
