@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/payfazz/go-errors/v2"
 
@@ -25,6 +26,10 @@ func Read(filename string, v interface{}) error {
 }
 
 func Write(filename string, v interface{}) error {
+	if err := os.MkdirAll(filepath.Dir(filename), 0o700); err != nil {
+		return errors.Wrap(err)
+	}
+
 	data, err := json.Marshal(v)
 	if err != nil {
 		return errors.Wrap(err)

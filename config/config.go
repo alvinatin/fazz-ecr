@@ -24,11 +24,6 @@ func init() {
 	}
 
 	cacheDir = filepath.Join(cacheDir, "fazz-ecr")
-
-	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
-		panic(err)
-	}
-
 	CacheFileDockerCreds = filepath.Join(cacheDir, CacheFileDockerCreds)
 	CacheFileOIDCProvider = filepath.Join(cacheDir, CacheFileOIDCProvider)
 	CacheFileOIDCToken = filepath.Join(cacheDir, CacheFileOIDCToken)

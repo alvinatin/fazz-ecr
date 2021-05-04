@@ -7,6 +7,10 @@ import (
 
 func Get(size int) string {
 	data := make([]byte, size)
-	rand.Read(data)
+	for {
+		if n, _ := rand.Read(data); n == size {
+			break
+		}
+	}
 	return base64.RawURLEncoding.EncodeToString(data)[:size]
 }

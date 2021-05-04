@@ -20,47 +20,45 @@ import (
 )
 
 func GetToken(callback func(string) (string, error)) error {
-	tokenCache := loadTokenCache()
+	cache := loadTokenCache()
 
-	if v, ok := tokenCache[config.OIDCIssuer]; ok {
+	if v, ok := cache[config.OIDCIssuer]; ok {
 		if _, err := callback(v.IDToken); err != nil {
 			return errors.Wrap(err)
 		}
 		return nil
 	}
 
-	providerCache := loadProviderCache()
+	provider := loadProviderCache()
+
+	redirect := fmt.Sprintf("http://localhost:%d", config.OIDCCallbackPort)
+	state := randstring.Get(16)
+
+	server := http.Server{Addr: fmt.Sprintf("localhost:%d", config.OIDCCallbackPort)}
+
+	done := uint32(0)
+
+	var shutdownOnce sync.Once
+	shutdown := func() { shutdownOnce.Do(func() { server.Shutdown(context.Background()) }) }
 
 	errCh := make(chan error, 1)
 
-	redirectURI := fmt.Sprintf("http://localhost:%d", config.OIDCCallbackPort)
-	state := randstring.Get(16)
-
-	callbackServer := http.Server{Addr: fmt.Sprintf("localhost:%d", config.OIDCCallbackPort)}
-
-	handled := uint32(0)
-
-	var shutdownOnce sync.Once
-	shutdown := func() {
-		shutdownOnce.Do(func() { callbackServer.Shutdown(context.Background()) })
-	}
-
-	callbackServer.Handler = handler.Of(func(r *http.Request) handler.Response {
+	server.Handler = handler.Of(func(r *http.Request) handler.Response {
 		if r.URL.EscapedPath() != "/" {
 			return defresponse.Status(404)
 		}
 
 		if r.URL.Query().Get("state") != state {
-			return defresponse.Text(400, "invalid \"state\"")
+			return defresponse.Text(400, `invalid "state"`)
 		}
 
-		if !atomic.CompareAndSwapUint32(&handled, 0, 1) {
+		if !atomic.CompareAndSwapUint32(&done, 0, 1) {
 			return defresponse.Text(400, "cannot call callback multiple time")
 		}
 
 		go shutdown()
 
-		token, err := providerCache.getIDToken(config.OIDCIssuer, config.OIDCClientID, redirectURI, r.URL.Query().Get("code"))
+		token, err := provider.getIDToken(config.OIDCIssuer, config.OIDCClientID, redirect, r.URL.Query().Get("code"))
 		if err != nil {
 			return errResponse(errCh, errors.Wrap(err))
 		}
@@ -70,23 +68,23 @@ func GetToken(callback func(string) (string, error)) error {
 			return errResponse(errCh, errors.Errorf("invalid token from oidc"))
 		}
 
-		jwtBodyRaw, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
+		tokenBodyRaw, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
 		if err != nil {
 			return errResponse(errCh, errors.Wrap(err))
 		}
 
-		var jwtBody struct {
+		var tokenBody struct {
 			Exp int64 `json:"exp"`
 		}
-		if err := json.Unmarshal(jwtBodyRaw, &jwtBody); err != nil {
+		if err := json.Unmarshal(tokenBodyRaw, &tokenBody); err != nil {
 			return errResponse(errCh, errors.Wrap(err))
 		}
 
-		tokenCache[config.OIDCIssuer] = tokenCacheItem{
+		cache[config.OIDCIssuer] = tokenCacheItem{
 			IDToken: token,
-			Exp:     jwtBody.Exp,
+			Exp:     tokenBody.Exp,
 		}
-		tokenCache.save()
+		cache.save()
 
 		res, err := callback(token)
 		if err != nil {
@@ -97,21 +95,23 @@ func GetToken(callback func(string) (string, error)) error {
 		return defresponse.Text(200, res)
 	})
 
-	authURI, err := providerCache.getAuthUri(config.OIDCIssuer, config.OIDCClientID, redirectURI, state)
+	auth, err := provider.getAuthUri(config.OIDCIssuer, config.OIDCClientID, redirect, state)
 	if err != nil {
 		return errors.Wrap(err)
 	}
 
 	go func() {
-		if err := callbackServer.ListenAndServe(); err != http.ErrServerClosed {
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
 			errCh <- errors.Wrap(err)
 		}
 	}()
 
+	// if no error after 100ms, open browser
+	// this is to make sure that server is running first
 	select {
 	case err = <-errCh:
 	case <-time.After(100 * time.Millisecond):
-		openBrowser(authURI)
+		openBrowser(auth)
 	}
 
 	if err == nil {

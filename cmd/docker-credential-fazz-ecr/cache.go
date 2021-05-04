@@ -8,6 +8,8 @@ import (
 	"github.com/payfazz/fazz-ecr/util/jsonfile"
 )
 
+// TODO(win): thread safe
+
 type cache map[string]types.Cred
 
 func loadCache() cache {

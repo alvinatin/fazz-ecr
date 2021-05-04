@@ -7,6 +7,8 @@ import (
 	"github.com/payfazz/fazz-ecr/util/jsonfile"
 )
 
+// TODO(win): thread safe
+
 type tokenCache map[string]tokenCacheItem
 
 type tokenCacheItem struct {

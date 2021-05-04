@@ -14,6 +14,8 @@ import (
 	"github.com/payfazz/fazz-ecr/util/jsonfile"
 )
 
+// TODO(win): thread safe
+
 type providerCache map[string]providerCacheItem
 
 type providerCacheItem struct {
@@ -60,7 +62,10 @@ func (c providerCache) ensure(issuer string) error {
 	if u.Scheme != "https" {
 		return errors.Errorf("oidc provider must use https")
 	}
-	u, _ = u.Parse(path.Join("/", u.EscapedPath(), ".well-known/openid-configuration"))
+	if !strings.HasPrefix(u.EscapedPath(), "/") {
+		return errors.Errorf("oidc provider must use absolute path")
+	}
+	u, _ = u.Parse(path.Join(u.EscapedPath(), ".well-known/openid-configuration"))
 
 	resp, err := http.Get(u.String())
 	if err != nil {
@@ -104,12 +109,12 @@ func (c providerCache) ensure(issuer string) error {
 	}
 
 	if !inArray("code", config.RespType) {
-		return errors.Errorf("oidc config doesn't support \"code\" response_type")
+		return errors.Errorf(`oidc config doesn't support "code" response_type`)
 	}
 
 	for _, v := range []string{"openid", "email", "groups"} {
 		if !inArray(v, config.Scopes) {
-			return errors.Errorf("oidc scopes doesn't support \"%s\" scope", v)
+			return errors.Errorf(`oidc scopes doesn't support "%s" scope`, v)
 		}
 	}
 
@@ -124,7 +129,7 @@ func (c providerCache) ensure(issuer string) error {
 	return nil
 }
 
-func (c providerCache) getAuthUri(issuer string, clientID string, redirectURI string, state string) (string, error) {
+func (c providerCache) getAuthUri(issuer string, clientID string, redirect string, state string) (string, error) {
 	if err := c.ensure(issuer); err != nil {
 		return "", errors.Wrap(err)
 	}
@@ -134,7 +139,7 @@ func (c providerCache) getAuthUri(issuer string, clientID string, redirectURI st
 	q := u.Query()
 	q.Set("client_id", clientID)
 	q.Set("response_type", "code")
-	q.Set("redirect_uri", redirectURI)
+	q.Set("redirect_uri", redirect)
 	q.Set("scope", "openid email groups")
 	q.Set("state", state)
 
@@ -142,7 +147,7 @@ func (c providerCache) getAuthUri(issuer string, clientID string, redirectURI st
 	return u.String(), nil
 }
 
-func (c providerCache) getIDToken(issuer string, clientID string, redirectURI string, code string) (string, error) {
+func (c providerCache) getIDToken(issuer string, clientID string, redirect string, code string) (string, error) {
 	if err := c.ensure(issuer); err != nil {
 		return "", errors.Wrap(err)
 	}
@@ -150,7 +155,7 @@ func (c providerCache) getIDToken(issuer string, clientID string, redirectURI st
 	q := make(url.Values)
 	q.Set("client_id", clientID)
 	q.Set("grant_type", "authorization_code")
-	q.Set("redirect_uri", redirectURI)
+	q.Set("redirect_uri", redirect)
 	q.Set("code", code)
 
 	resp, err := http.Post(
