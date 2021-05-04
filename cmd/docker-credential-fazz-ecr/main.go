@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker-credential-helpers/credentials"
-	"github.com/payfazz/go-errors"
+	"github.com/payfazz/go-errors/v2"
 
 	"github.com/payfazz/fazz-ecr/util/oidctoken"
 )

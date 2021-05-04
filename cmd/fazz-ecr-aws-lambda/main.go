@@ -8,7 +8,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/payfazz/go-errors"
+	"github.com/payfazz/go-errors/v2"
 
 	"github.com/payfazz/fazz-ecr/config"
 )

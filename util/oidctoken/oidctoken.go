@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/payfazz/go-errors"
+	"github.com/payfazz/go-errors/v2"
 	"github.com/payfazz/go-handler"
 	"github.com/payfazz/go-handler/defresponse"
 

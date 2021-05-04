@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/payfazz/go-errors"
+	"github.com/payfazz/go-errors/v2"
 
 	"github.com/payfazz/fazz-ecr/config"
 	"github.com/payfazz/fazz-ecr/util/jsonfile"

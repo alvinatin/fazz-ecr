@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/payfazz/go-errors"
+	"github.com/payfazz/go-errors/v2"
 
 	"github.com/payfazz/fazz-ecr/pkg/types"
 )

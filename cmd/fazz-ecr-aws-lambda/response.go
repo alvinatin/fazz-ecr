@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/payfazz/go-errors"
+	"github.com/payfazz/go-errors/v2"
 
 	"github.com/payfazz/fazz-ecr/pkg/types"
 )
