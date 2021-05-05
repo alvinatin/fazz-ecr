@@ -7,80 +7,109 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/payfazz/go-errors/v2"
-	"github.com/payfazz/go-handler"
-	"github.com/payfazz/go-handler/defresponse"
+	"github.com/payfazz/go-handler/v2"
+	"github.com/payfazz/go-handler/v2/defresponse"
 
-	"github.com/payfazz/fazz-ecr/config"
+	oidcconfig "github.com/payfazz/fazz-ecr/config/oidc"
 	"github.com/payfazz/fazz-ecr/util/randstring"
 )
 
 func GetToken(callback func(string) (string, error)) error {
 	cache := loadTokenCache()
 
-	if v, ok := cache[config.OIDCIssuer]; ok {
-		if _, err := callback(v.IDToken); err != nil {
-			return errors.Wrap(err)
-		}
-		return nil
+	if v, ok := cache[oidcconfig.Issuer]; ok {
+		_, err := callback(v.IDToken)
+		return err
+	}
+
+	redirect := fmt.Sprintf("http://localhost:%d", oidcconfig.CallbackPort)
+	state := randstring.Get(16)
+
+	handled := uint32(0)
+
+	type resp struct {
+		text   string
+		status int
+	}
+
+	codeCh := make(chan string, 1)
+	respCh := make(chan resp, 1)
+
+	server := http.Server{
+		Addr: fmt.Sprintf("localhost:%d", oidcconfig.CallbackPort),
+		Handler: handler.Of(func(r *http.Request) http.HandlerFunc {
+			if r.URL.EscapedPath() != "/" {
+				return defresponse.Status(404)
+			}
+
+			if r.URL.Query().Get("state") != state {
+				return defresponse.Text(400, `invalid "state"`)
+			}
+
+			code := r.URL.Query().Get("code")
+			if code == "" {
+				return defresponse.Text(400, `"code" is empty`)
+			}
+
+			if !atomic.CompareAndSwapUint32(&handled, 0, 1) {
+				return defresponse.Text(400, "cannot call callback multiple time")
+			}
+
+			codeCh <- code
+			resp := <-respCh
+
+			return defresponse.Text(resp.status, resp.text)
+		}),
+	}
+
+	serverErrCh := make(chan error, 1)
+	go func() { serverErrCh <- errors.Trace(server.ListenAndServe()) }()
+	defer server.Shutdown(context.Background())
+
+	// this is to make sure that server is running first
+	select {
+	case err := <-serverErrCh:
+		return err
+	case <-time.After(500 * time.Millisecond):
 	}
 
 	provider := loadProviderCache()
 
-	redirect := fmt.Sprintf("http://localhost:%d", config.OIDCCallbackPort)
-	state := randstring.Get(16)
+	auth, err := provider.getAuthUri(oidcconfig.Issuer, oidcconfig.ClientID, redirect, state)
+	if err != nil {
+		return err
+	}
 
-	server := http.Server{Addr: fmt.Sprintf("localhost:%d", config.OIDCCallbackPort)}
+	openBrowser(auth)
 
-	done := uint32(0)
-
-	var shutdownOnce sync.Once
-	shutdown := func() { shutdownOnce.Do(func() { server.Shutdown(context.Background()) }) }
-
-	errCh := make(chan error, 1)
-
-	server.Handler = handler.Of(func(r *http.Request) handler.Response {
-		if r.URL.EscapedPath() != "/" {
-			return defresponse.Status(404)
-		}
-
-		if r.URL.Query().Get("state") != state {
-			return defresponse.Text(400, `invalid "state"`)
-		}
-
-		if !atomic.CompareAndSwapUint32(&done, 0, 1) {
-			return defresponse.Text(400, "cannot call callback multiple time")
-		}
-
-		go shutdown()
-
-		token, err := provider.getIDToken(config.OIDCIssuer, config.OIDCClientID, redirect, r.URL.Query().Get("code"))
+	processCode := func(code string) (string, error) {
+		token, err := provider.getIDToken(oidcconfig.Issuer, oidcconfig.ClientID, redirect, code)
 		if err != nil {
-			return errResponse(errCh, errors.Wrap(err))
+			return "", err
 		}
 
 		tokenParts := strings.Split(token, ".")
 		if len(tokenParts) < 2 {
-			return errResponse(errCh, errors.Errorf("invalid token from oidc"))
+			return "", errors.Errorf("invalid token from oidc")
 		}
 
 		tokenBodyRaw, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
 		if err != nil {
-			return errResponse(errCh, errors.Wrap(err))
+			return "", errors.Trace(err)
 		}
 
 		var tokenBody struct {
 			Exp int64 `json:"exp"`
 		}
 		if err := json.Unmarshal(tokenBodyRaw, &tokenBody); err != nil {
-			return errResponse(errCh, errors.Wrap(err))
+			return "", errors.Trace(err)
 		}
 
-		cache[config.OIDCIssuer] = tokenCacheItem{
+		cache[oidcconfig.Issuer] = tokenCacheItem{
 			IDToken: token,
 			Exp:     tokenBody.Exp,
 		}
@@ -88,40 +117,24 @@ func GetToken(callback func(string) (string, error)) error {
 
 		res, err := callback(token)
 		if err != nil {
-			return errResponse(errCh, errors.Wrap(err))
+			return "", err
 		}
 
-		errCh <- nil
-		return defresponse.Text(200, res)
-	})
-
-	auth, err := provider.getAuthUri(config.OIDCIssuer, config.OIDCClientID, redirect, state)
-	if err != nil {
-		return errors.Wrap(err)
+		return res, nil
 	}
 
-	go func() {
-		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			errCh <- errors.Wrap(err)
-		}
-	}()
-
-	// if no error after 100ms, open browser
-	// this is to make sure that server is running first
 	select {
-	case err = <-errCh:
-	case <-time.After(100 * time.Millisecond):
-		openBrowser(auth)
-	}
-
-	if err == nil {
-		select {
-		case err = <-errCh:
-		case <-time.After(5 * time.Minute):
-			err = errors.Errorf("timed out after waiting for 5 minutes")
+	case err := <-serverErrCh:
+		return err
+	case <-time.After(5 * time.Minute):
+		return errors.Errorf("timed out after waiting for 5 minutes")
+	case code := <-codeCh:
+		text, err := processCode(code)
+		if err != nil {
+			respCh <- resp{text: err.Error(), status: 500}
+		} else {
+			respCh <- resp{text: text, status: 200}
 		}
+		return err
 	}
-
-	shutdown()
-	return err
 }

@@ -3,18 +3,16 @@ package main
 import (
 	"time"
 
-	"github.com/payfazz/fazz-ecr/config"
+	"github.com/payfazz/fazz-ecr/config/cachefile"
 	"github.com/payfazz/fazz-ecr/pkg/types"
 	"github.com/payfazz/fazz-ecr/util/jsonfile"
 )
-
-// TODO(win): thread safe
 
 type cache map[string]types.Cred
 
 func loadCache() cache {
 	var ret cache
-	if err := jsonfile.Read(config.CacheFileDockerCreds, &ret); err != nil {
+	if err := jsonfile.Read(cachefile.DockerCreds, &ret); err != nil {
 		return make(cache)
 	}
 
@@ -33,5 +31,5 @@ func loadCache() cache {
 }
 
 func (c cache) save() {
-	jsonfile.Write(config.CacheFileDockerCreds, c)
+	jsonfile.Write(cachefile.DockerCreds, c)
 }

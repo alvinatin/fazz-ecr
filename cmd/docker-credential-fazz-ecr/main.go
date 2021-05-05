@@ -10,8 +10,6 @@ import (
 	"github.com/payfazz/fazz-ecr/util/oidctoken"
 )
 
-var errNotImplemented = fmt.Errorf("not implemented")
-
 func main() {
 	credentials.Serve(h{})
 }
@@ -19,7 +17,7 @@ func main() {
 type h struct{}
 
 func (h) Add(*credentials.Credentials) error {
-	return errors.Wrap(errNotImplemented)
+	return log(errors.New("Not Implemented"))
 }
 
 func (h) Delete(serverURL string) error {
@@ -49,7 +47,7 @@ func (h) Get(serverURL string) (string, string, error) {
 	processToken := func(IDToken string) (string, error) {
 		result, err := exchageToken(IDToken)
 		if err != nil {
-			return "", errors.Wrap(err)
+			return "", err
 		}
 
 		cache[serverURL] = result
@@ -69,7 +67,7 @@ func (h) Get(serverURL string) (string, string, error) {
 	}
 
 	if err := oidctoken.GetToken(processToken); err != nil {
-		return "", "", errors.Wrap(err)
+		return "", "", log(err)
 	}
 
 	item := cache[serverURL]

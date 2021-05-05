@@ -10,11 +10,9 @@ import (
 
 	"github.com/payfazz/go-errors/v2"
 
-	"github.com/payfazz/fazz-ecr/config"
+	"github.com/payfazz/fazz-ecr/config/cachefile"
 	"github.com/payfazz/fazz-ecr/util/jsonfile"
 )
-
-// TODO(win): thread safe
 
 type providerCache map[string]providerCacheItem
 
@@ -26,7 +24,7 @@ type providerCacheItem struct {
 
 func loadProviderCache() providerCache {
 	var ret providerCache
-	if err := jsonfile.Read(config.CacheFileOIDCProvider, &ret); err != nil {
+	if err := jsonfile.Read(cachefile.OIDCProvider, &ret); err != nil {
 		return make(providerCache)
 	}
 
@@ -45,7 +43,7 @@ func loadProviderCache() providerCache {
 }
 
 func (c providerCache) save() {
-	jsonfile.Write(config.CacheFileOIDCProvider, c)
+	jsonfile.Write(cachefile.OIDCProvider, c)
 }
 
 func (c providerCache) ensure(issuer string) error {
@@ -57,19 +55,19 @@ func (c providerCache) ensure(issuer string) error {
 
 	u, err := url.Parse(issuer)
 	if err != nil {
-		return errors.Wrap(err)
+		return errors.Trace(err)
 	}
 	if u.Scheme != "https" {
 		return errors.Errorf("oidc provider must use https")
 	}
-	if !strings.HasPrefix(u.EscapedPath(), "/") {
+	if !strings.HasPrefix(u.EscapedPath(), "/") && u.EscapedPath() != "" {
 		return errors.Errorf("oidc provider must use absolute path")
 	}
 	u, _ = u.Parse(path.Join(u.EscapedPath(), ".well-known/openid-configuration"))
 
 	resp, err := http.Get(u.String())
 	if err != nil {
-		return errors.Wrap(err)
+		return errors.Trace(err)
 	}
 	defer resp.Body.Close()
 
@@ -85,7 +83,7 @@ func (c providerCache) ensure(issuer string) error {
 		Scopes   []string `json:"scopes_supported"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&config); err != nil {
-		return errors.Wrap(err)
+		return errors.Trace(err)
 	}
 
 	if config.Issuer != issuer {
@@ -131,7 +129,7 @@ func (c providerCache) ensure(issuer string) error {
 
 func (c providerCache) getAuthUri(issuer string, clientID string, redirect string, state string) (string, error) {
 	if err := c.ensure(issuer); err != nil {
-		return "", errors.Wrap(err)
+		return "", err
 	}
 
 	u, _ := url.Parse(c[issuer].AuthURL)
@@ -149,7 +147,7 @@ func (c providerCache) getAuthUri(issuer string, clientID string, redirect strin
 
 func (c providerCache) getIDToken(issuer string, clientID string, redirect string, code string) (string, error) {
 	if err := c.ensure(issuer); err != nil {
-		return "", errors.Wrap(err)
+		return "", err
 	}
 
 	q := make(url.Values)
@@ -164,7 +162,7 @@ func (c providerCache) getIDToken(issuer string, clientID string, redirect strin
 		strings.NewReader(q.Encode()),
 	)
 	if err != nil {
-		return "", errors.Wrap(err)
+		return "", errors.Trace(err)
 	}
 	defer resp.Body.Close()
 
@@ -176,7 +174,7 @@ func (c providerCache) getIDToken(issuer string, clientID string, redirect strin
 		IDToken string `json:"id_token"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", errors.Wrap(err)
+		return "", errors.Trace(err)
 	}
 
 	return result.IDToken, nil

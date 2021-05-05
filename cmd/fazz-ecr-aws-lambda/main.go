@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/payfazz/go-errors/v2"
 
-	"github.com/payfazz/fazz-ecr/config"
+	oidcconfig "github.com/payfazz/fazz-ecr/config/oidc"
 )
 
 func main() {
@@ -28,8 +28,8 @@ func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 	if input.RequestContext.Authorizer == nil ||
 		input.RequestContext.Authorizer.JWT == nil ||
 		input.RequestContext.Authorizer.JWT.Claims == nil ||
-		input.RequestContext.Authorizer.JWT.Claims["iss"] != config.OIDCIssuer ||
-		input.RequestContext.Authorizer.JWT.Claims["aud"] != config.OIDCClientID {
+		input.RequestContext.Authorizer.JWT.Claims["iss"] != oidcconfig.Issuer ||
+		input.RequestContext.Authorizer.JWT.Claims["aud"] != oidcconfig.ClientID {
 		return resp401()
 	}
 

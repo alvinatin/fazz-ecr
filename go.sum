@@ -14,10 +14,10 @@ github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9Y
 github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1 h1:shLQSRRSCCPj3f2gpwzGwWFoC7ycTf1rcQZHOlsJ6N8=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=
-github.com/payfazz/go-errors/v2 v2.0.1 h1:vq/0tYnZ3lZVidYlWGUKE/m6b8EZkv4WLpcDIJG6eO4=
-github.com/payfazz/go-errors/v2 v2.0.1/go.mod h1:g6OaiFrvL1npZWCHsMNgiUrAnduV3iypb29AzNpQOs8=
-github.com/payfazz/go-handler v1.0.0 h1:q5kTg1aC0P+RUBREvOa3WG5vsnSJHNLfaDMYfhRDNJY=
-github.com/payfazz/go-handler v1.0.0/go.mod h1:OFBvOUNurOKO+D6fWCbBQnpaEwDN44I0y9gN7zg1RqI=
+github.com/payfazz/go-errors/v2 v2.0.5 h1:B5jMacp8eltnqGh1EeCzNmSE6TVNJPVI+wDAIB3gszg=
+github.com/payfazz/go-errors/v2 v2.0.5/go.mod h1:g6OaiFrvL1npZWCHsMNgiUrAnduV3iypb29AzNpQOs8=
+github.com/payfazz/go-handler/v2 v2.0.0 h1:7eVsXBWT+52a3NDUqi54aw8V/rCxsouSyfUYzIAo+RM=
+github.com/payfazz/go-handler/v2 v2.0.0/go.mod h1:o9VLUCta2xmbbbovnCHf/osILAnDlJ/7TLiNecdVWbQ=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
