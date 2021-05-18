@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"crypto/sha256"
+	"encoding/base32"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -8,18 +10,24 @@ import (
 )
 
 var (
-	invalidChar = regexp.MustCompile(`[^a-z0-9-]`)
-	charLimit   = 50
+	invalidChar   = regexp.MustCompile(`[^a-z0-9-]`)
+	charLimit     = 50
+	charLimitHash = 10
 
 	region = "ap-southeast-1"
 
 	roleNameTemplate = `fazz-ecr-%s`
 	roleArnTemplate  = `arn:aws:iam::322727087874:role/%s`
 	repoTemplate     = `arn:aws:ecr:ap-southeast-1:322727087874:repository/%s/*`
-	policyTemplate   = `` +
+
+	inlinePolicyName = "ecr"
+
+	policySidForManageRepo = "CreatePushPull"
+
+	policyTemplate = `` +
 		`{"Version":"2012-10-17","Statement":[` +
 		`{"Sid":"Login","Effect":"Allow","Action":"ecr:GetAuthorizationToken","Resource":"*"},` +
-		`{"Sid":"CreatePushPull","Effect":"Allow","Action":` +
+		`{"Sid":"` + policySidForManageRepo + `","Effect":"Allow","Action":` +
 		`[` +
 		`"ecr:CreateRepository",` +
 		`"ecr:BatchGetImage",` +
@@ -31,13 +39,21 @@ var (
 		`"ecr:PutImage"` +
 		`]` +
 		`,"Resource":%s}]}`
+
+	assumePolicyDoc = `` +
+		`{"Version": "2012-10-17","Statement": [` +
+		`{"Effect": "Allow",` +
+		`"Principal": {"AWS": "arn:aws:iam::322727087874:role/lambda-fazz-ecr"},` +
+		`"Action": "sts:AssumeRole"}]}`
 )
 
 func normalize(value string) string {
-	value = invalidChar.ReplaceAllString(strings.ToLower(value), "-")
 	if len(value) > charLimit {
-		value = value[:charLimit]
+		sumBytes := sha256.Sum256([]byte(value))
+		sum := base32.StdEncoding.EncodeToString(sumBytes[:])
+		value = value[:charLimit-charLimitHash] + sum[:charLimitHash]
 	}
+	value = invalidChar.ReplaceAllString(strings.ToLower(value), "-")
 	return value
 }
 
@@ -45,7 +61,17 @@ func repoFor(namespace string) string {
 	return fmt.Sprintf(repoTemplate, normalize(namespace))
 }
 
-func Region() string { return region }
+func Region() string {
+	return region
+}
+
+func AssumePolicyDoc() string {
+	return assumePolicyDoc
+}
+
+func InlinePolicyName() string {
+	return inlinePolicyName
+}
 
 func RoleNameFor(email string) string {
 	return fmt.Sprintf(roleNameTemplate, normalize(email))
@@ -56,9 +82,14 @@ func RoleArnFor(email string) string {
 }
 
 func PolicyDocumentFor(email string, groups []string) string {
-	resources := []string{repoFor(email)}
+	resourceSet := make(map[string]struct{})
+	resourceSet[repoFor(email)] = struct{}{}
 	for _, g := range groups {
-		resources = append(resources, repoFor(g))
+		resourceSet[repoFor(g)] = struct{}{}
+	}
+	resources := make([]string, 0, len(resourceSet))
+	for k := range resourceSet {
+		resources = append(resources, k)
 	}
 	resourcesEncoded, _ := json.Marshal(resources)
 	return fmt.Sprintf(policyTemplate, resourcesEncoded)
@@ -68,15 +99,13 @@ func RepoListFromPolicyDoc(document string) []string {
 	var doc struct {
 		Statement []struct {
 			Sid      string
-			Resource json.RawMessage
+			Resource []string
 		}
 	}
 	json.Unmarshal([]byte(document), &doc)
 	for _, v := range doc.Statement {
-		if v.Sid == "CreatePushPull" {
-			var ret []string
-			json.Unmarshal(v.Resource, &ret)
-			return ret
+		if v.Sid == policySidForManageRepo {
+			return v.Resource
 		}
 	}
 	return nil

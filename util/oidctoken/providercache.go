@@ -28,15 +28,11 @@ func loadProviderCache() providerCache {
 		return make(providerCache)
 	}
 
-	var expList []string
 	now := time.Now().Unix()
 	for k, v := range ret {
 		if v.Exp <= now {
-			expList = append(expList, k)
+			delete(ret, k)
 		}
-	}
-	for _, k := range expList {
-		delete(ret, k)
 	}
 
 	return ret
@@ -72,7 +68,7 @@ func (c providerCache) ensure(issuer string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return errors.Errorf("oidc config url not returning 200")
+		return errors.Errorf("oidc config url endpoint returning http code: %d", resp.StatusCode)
 	}
 
 	var config struct {
@@ -167,7 +163,7 @@ func (c providerCache) getIDToken(issuer string, clientID string, redirect strin
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return "", errors.Errorf("token url not returning 200")
+		return "", errors.Errorf("token url endpoint returning http code: %d", resp.StatusCode)
 	}
 
 	var result struct {
