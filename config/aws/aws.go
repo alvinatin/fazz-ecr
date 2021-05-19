@@ -105,8 +105,19 @@ func RepoListFromPolicyDoc(document string) []string {
 	json.Unmarshal([]byte(document), &doc)
 	for _, v := range doc.Statement {
 		if v.Sid == policySidForManageRepo {
-			return v.Resource
+			var ret []string
+			for _, x := range v.Resource {
+				ret = append(ret, resourceToRepo(x))
+			}
+			return ret
 		}
 	}
 	return nil
+}
+
+var resourceRegex = regexp.MustCompile(`^arn:aws:ecr:([^:]*):([^:]*):repository/(.*)$`)
+
+func resourceToRepo(input string) string {
+	matches := resourceRegex.FindStringSubmatch(input)
+	return fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", matches[2], matches[1], matches[3])
 }
