@@ -16,15 +16,11 @@ func loadCache() cache {
 		return make(cache)
 	}
 
-	var expList []string
 	now := time.Now().Unix()
 	for k, v := range ret {
 		if v.Exp <= now {
-			expList = append(expList, k)
+			delete(ret, k)
 		}
-	}
-	for _, k := range expList {
-		delete(ret, k)
 	}
 
 	return ret

@@ -27,7 +27,7 @@ func exchageToken(IDToken string) (types.Cred, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return types.Cred{}, errors.Errorf("exchange endpoint not returning 200")
+		return types.Cred{}, errors.Errorf("exchange endpoint returning http code: %d", resp.StatusCode)
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&cred); err != nil {
