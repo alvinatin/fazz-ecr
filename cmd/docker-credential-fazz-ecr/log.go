@@ -18,9 +18,6 @@ func init() {
 			logFile = f
 		}
 	}
-	if logFile == nil {
-		logFile = io.Discard
-	}
 }
 
 func log(err error) error {
@@ -28,7 +25,15 @@ func log(err error) error {
 		return nil
 	}
 
-	fmt.Fprintf(logFile, "%v\n%s\n\n", time.Now(), errors.Format(err))
+	if logFile != nil {
+		fmt.Fprintf(logFile, "%v\n%s\n\n",
+			time.Now(),
+			errors.FormatWithFilterPkgs(err,
+				"main",
+				"github.com/payfazz/fazz-ecr",
+			),
+		)
+	}
 
 	return err
 }

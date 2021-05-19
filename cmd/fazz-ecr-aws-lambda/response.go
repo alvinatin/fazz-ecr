@@ -57,7 +57,7 @@ func resp500(err error) ([]byte, error) {
 	}{
 		Time:   time.Now(),
 		Error:  err.Error(),
-		Detail: errors.FormatWithFilterPkgs(err, "github.com/payfazz/fazz-ecr"),
+		Detail: errors.FormatWithFilterPkgs(err, "main", "github.com/payfazz/fazz-ecr"),
 	})
 	fmt.Fprintln(os.Stderr, string(logBody))
 	return resp(500, "500 Internal Server error")

@@ -9,7 +9,7 @@ rm -rf "$tmpdir"
 mkdir -p "$tmpdir"
 
 echo ">>> compiling code"
-CGO_ENABLED=0 go build -o "$tmpdir/bootstrap" -tags lambda.norpc ./cmd/fazz-ecr-aws-lambda > /dev/null
+CGO_ENABLED=0 go build -trimpath -o "$tmpdir/bootstrap" -tags lambda.norpc ./cmd/fazz-ecr-aws-lambda > /dev/null
 
 cd "$tmpdir"
 
