@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/payfazz/go-errors/v2"
 
+	"github.com/payfazz/fazz-ecr/cmd/fazz-ecr-aws-lambda/exchangesvc"
 	oidcconfig "github.com/payfazz/fazz-ecr/config/oidc"
 )
 
@@ -22,7 +23,7 @@ type h struct{}
 func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 	var input events.APIGatewayV2HTTPRequest
 	if err := json.Unmarshal(payload, &input); err != nil {
-		return resp500(errors.Wrap(err))
+		return resp500(errors.Trace(err))
 	}
 
 	if input.RequestContext.Authorizer == nil ||
@@ -40,7 +41,7 @@ func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 	)
 	jwtBodyRaw, err := base64.RawURLEncoding.DecodeString(authHeader[1])
 	if err != nil {
-		return resp500(errors.Wrap(err))
+		return resp500(errors.Trace(err))
 	}
 
 	var jwtBody struct {
@@ -48,16 +49,16 @@ func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 		Groups []string `json:"groups"`
 	}
 	if err := json.Unmarshal(jwtBodyRaw, &jwtBody); err != nil {
-		return resp500(errors.Wrap(err))
+		return resp500(errors.Trace(err))
 	}
 	if jwtBody.Email == "" {
 		return resp400("cannot accept jwt token without email")
 	}
 
 	if input.RouteKey == "GET /docker-login" {
-		cred, err := getCredFor(jwtBody.Email, jwtBody.Groups)
+		cred, err := exchangesvc.GetCredFor(jwtBody.Email, jwtBody.Groups)
 		if err != nil {
-			return resp500(errors.Wrap(err))
+			return resp500(errors.Trace(err))
 		}
 
 		return respOk(cred)
