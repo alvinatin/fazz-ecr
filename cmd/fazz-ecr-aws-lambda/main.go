@@ -10,7 +10,8 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/payfazz/go-errors/v2"
 
-	"github.com/payfazz/fazz-ecr/cmd/fazz-ecr-aws-lambda/exchangesvc"
+	"github.com/payfazz/fazz-ecr/cmd/fazz-ecr-aws-lambda/svc/createrepo"
+	"github.com/payfazz/fazz-ecr/cmd/fazz-ecr-aws-lambda/svc/dockerlogin"
 	oidcconfig "github.com/payfazz/fazz-ecr/config/oidc"
 )
 
@@ -22,9 +23,8 @@ type h struct{}
 
 func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 	var ret []byte
-	var err error
-
-	err = errors.Catch(func() error {
+	if err := errors.Catch(func() error {
+		var err error
 		ret, err = func() ([]byte, error) {
 			var input events.APIGatewayV2HTTPRequest
 			if err := json.Unmarshal(payload, &input); err != nil {
@@ -33,7 +33,7 @@ func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 
 			claims := input.RequestContext.Authorizer.JWT.Claims
 			if claims["iss"] != oidcconfig.Issuer || claims["aud"] != oidcconfig.ClientID {
-				return resp401(), nil
+				return resp(401, "invalid iss or aud in jwt token"), nil
 			}
 
 			// it is safe to trust content of jwt token, because api gateway already verify it for us
@@ -52,25 +52,43 @@ func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 				return nil, errors.Trace(err)
 			}
 			if jwtBody.Email == "" {
-				return resp400("cannot accept jwt token without email"), nil
+				return resp(400, "cannot accept jwt token without email"), nil
 			}
 
-			if input.RouteKey == "GET /docker-login" {
-				cred, err := exchangesvc.GetCredFor(jwtBody.Email, jwtBody.Groups)
+			switch input.RouteKey {
+			case "GET /docker-login":
+				cred, err := dockerlogin.GetCredFor(jwtBody.Email, jwtBody.Groups)
 				if err != nil {
-					return nil, errors.Trace(err)
+					return nil, err
 				}
 
 				return respCred(cred), nil
-			}
 
-			return resp404(), nil
+			case "POST /create-repo":
+				var body struct {
+					Repo string
+				}
+				if err := json.Unmarshal([]byte(input.Body), &body); err != nil {
+					return resp(400, "invalid json body"), nil
+				}
+
+				if body.Repo == "" {
+					return resp(400, "repo cannot be empty"), nil
+				}
+
+				if err := createrepo.CreateRepoFor(jwtBody.Email, jwtBody.Groups, body.Repo); err != nil {
+					return nil, err
+				}
+
+				return resp(200, "OK"), nil
+
+			default:
+				return resp(404, "invalid path"), nil
+			}
 		}()
 		return err
-	})
-
-	if err != nil {
-		return resp500(err), nil
+	}); err != nil {
+		return respErr(err), nil
 	}
 
 	return ret, nil

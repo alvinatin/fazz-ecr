@@ -35,19 +35,7 @@ func respCred(cred types.Cred) []byte {
 	return ret
 }
 
-func resp400(msg string) []byte {
-	return resp(400, msg)
-}
-
-func resp401() []byte {
-	return resp(401, "401 Unauthorized")
-}
-
-func resp404() []byte {
-	return resp(404, "404 Not Found")
-}
-
-func resp500(err error) []byte {
+func respErr(err error) []byte {
 	logBody, _ := json.Marshal(struct {
 		Time   time.Time
 		Error  string
