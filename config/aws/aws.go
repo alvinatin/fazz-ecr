@@ -22,14 +22,13 @@ var (
 
 	inlinePolicyName = "ecr"
 
-	policySidForManageRepo = "CreatePushPull"
+	policySidForManageRepo = "PushPull"
 
 	policyTemplate = `` +
 		`{"Version":"2012-10-17","Statement":[` +
 		`{"Sid":"Login","Effect":"Allow","Action":"ecr:GetAuthorizationToken","Resource":"*"},` +
 		`{"Sid":"` + policySidForManageRepo + `","Effect":"Allow","Action":` +
 		`[` +
-		`"ecr:CreateRepository",` +
 		`"ecr:BatchGetImage",` +
 		`"ecr:GetDownloadUrlForLayer",` +
 		`"ecr:BatchCheckLayerAvailability",` +
@@ -95,7 +94,7 @@ func PolicyDocumentFor(email string, groups []string) string {
 	return fmt.Sprintf(policyTemplate, resourcesEncoded)
 }
 
-func RepoListFromPolicyDoc(document string) []string {
+func RepoListPatternFromPolicyDoc(document string) []string {
 	var doc struct {
 		Statement []struct {
 			Sid      string

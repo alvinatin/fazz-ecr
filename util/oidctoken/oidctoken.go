@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -19,6 +20,11 @@ import (
 )
 
 func GetToken(callback func(string) (string, error)) error {
+	if token := os.Getenv("FAZZ_ECR_TOKEN"); token != "" {
+		_, err := callback(token)
+		return err
+	}
+
 	cache := loadTokenCache()
 
 	if v, ok := cache[oidcconfig.Issuer]; ok {

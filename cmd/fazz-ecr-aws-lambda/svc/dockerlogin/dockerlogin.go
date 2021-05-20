@@ -42,12 +42,12 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 				return onOk(result)
 			}
 
-			var awserr awserr.Error
-			if !errors.As(err, &awserr) {
+			if alreadyHandled {
 				return err
 			}
 
-			if alreadyHandled {
+			var awserr awserr.Error
+			if !errors.As(err, &awserr) {
 				return err
 			}
 
@@ -108,7 +108,7 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 		)
 	}
 
-	doProcessCred := func() error {
+	doGetCred := func() error {
 		return doAction(
 			func() (interface{}, error) {
 				result, err := iamsvc.GetRolePolicy(&iam.GetRolePolicyInput{
@@ -147,15 +147,15 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 					return errors.Trace(err)
 				}
 
-				authToken, err := base64.StdEncoding.DecodeString(*authTokenResult.AuthorizationData[0].AuthorizationToken)
+				token, err := base64.StdEncoding.DecodeString(*authTokenResult.AuthorizationData[0].AuthorizationToken)
 				if err != nil {
 					return errors.Trace(err)
 				}
-				authTokenParts := strings.SplitN(string(authToken), ":", 2)
+				tokenParts := strings.SplitN(string(token), ":", 2)
 
-				cred.User = authTokenParts[0]
-				cred.Pass = authTokenParts[1]
-				cred.Access = awsconfig.RepoListFromPolicyDoc(doc)
+				cred.User = tokenParts[0]
+				cred.Pass = tokenParts[1]
+				cred.Access = awsconfig.RepoListPatternFromPolicyDoc(doc)
 				cred.Exp = authTokenResult.AuthorizationData[0].ExpiresAt.Unix()
 
 				return nil
@@ -165,7 +165,7 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 		)
 	}
 
-	if err := doProcessCred(); err != nil {
+	if err := doGetCred(); err != nil {
 		return cred, err
 	}
 
