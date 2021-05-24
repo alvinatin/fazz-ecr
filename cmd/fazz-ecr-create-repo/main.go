@@ -35,12 +35,12 @@ func main2() error {
 		var resp strings.Builder
 		fmt.Fprintf(&resp, "fazz-ecr-create-repo\n")
 		fmt.Fprintf(&resp, "====================\n")
-		fmt.Fprintf(&resp, "\n")
 
 		msg := fmt.Sprintf("Repo %s created", repo)
-
-		fmt.Fprintf(&resp, "%s\n", msg)
+		fmt.Fprintf(&resp, "\n%s\n", msg)
 		fmt.Fprintf(os.Stderr, "%s\n", msg)
+
+		fmt.Fprintf(&resp, "\nYou can now close this window\n")
 
 		return resp.String(), nil
 	}

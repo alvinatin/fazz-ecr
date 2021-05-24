@@ -120,3 +120,13 @@ func resourceToRepo(input string) string {
 	matches := resourceRegex.FindStringSubmatch(input)
 	return fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", matches[2], matches[1], matches[3])
 }
+
+var repoRegex = regexp.MustCompile(`^([^.]*).dkr.ecr.([^.]*).amazonaws.com/(.*)$`)
+
+func RepoNameOnlyOf(input string) string {
+	matches := repoRegex.FindStringSubmatch(input)
+	if len(matches) != 4 {
+		return ""
+	}
+	return matches[3]
+}

@@ -13,12 +13,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/payfazz/go-errors/v2"
 
+	iamutil "github.com/payfazz/fazz-ecr/cmd/fazz-ecr-aws-lambda/util/iam"
 	awsconfig "github.com/payfazz/fazz-ecr/config/aws"
 	"github.com/payfazz/fazz-ecr/pkg/types"
 )
 
 func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
-	envSession, err := envSession()
+	envSession, err := iamutil.EnvSession()
 	if err != nil {
 		return cred, err
 	}

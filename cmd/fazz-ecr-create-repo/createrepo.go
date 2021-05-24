@@ -24,9 +24,13 @@ func createRepo(IDToken string, repo string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 204 {
-		return errors.Errorf("create repo endpoint returning http code: %d", resp.StatusCode)
+	if resp.StatusCode == 200 {
+		return nil
 	}
 
-	return nil
+	if resp.StatusCode == 403 {
+		return errors.Errorf("Access Denied")
+	}
+
+	return errors.Errorf("create repo endpoint returning http code: %d", resp.StatusCode)
 }

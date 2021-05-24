@@ -1,4 +1,4 @@
-package dockerlogin
+package iam
 
 import (
 	"sync"
@@ -16,7 +16,7 @@ var envSession_ struct {
 	ses  *session.Session
 }
 
-func envSession() (*session.Session, error) {
+func EnvSession() (*session.Session, error) {
 	envSession_.once.Do(func() {
 		envSession_.ses, envSession_.err = session.NewSession(
 			&aws.Config{Region: aws.String(awsconfig.Region())},

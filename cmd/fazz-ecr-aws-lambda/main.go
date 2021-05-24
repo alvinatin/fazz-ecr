@@ -65,18 +65,22 @@ func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 				return respCred(cred), nil
 
 			case "POST /create-repo":
-				var body struct {
-					Repo string
+				var repo string
+				inputBody := []byte(input.Body)
+				if input.IsBase64Encoded {
+					inputBody, err = base64.StdEncoding.DecodeString(string(inputBody))
+					if err != nil {
+						return nil, errors.Trace(err)
+					}
 				}
-				if err := json.Unmarshal([]byte(input.Body), &body); err != nil {
+				if err := json.Unmarshal([]byte(inputBody), &repo); err != nil {
 					return resp(400, "invalid json body"), nil
 				}
 
-				if body.Repo == "" {
-					return resp(400, "repo cannot be empty"), nil
-				}
-
-				if err := createrepo.CreateRepoFor(jwtBody.Email, jwtBody.Groups, body.Repo); err != nil {
+				if err := createrepo.CreateRepoFor(jwtBody.Email, jwtBody.Groups, repo); err != nil {
+					if createrepo.IsAccessDenied(err) {
+						return resp(403, "Access Denied"), nil
+					}
 					return nil, err
 				}
 
