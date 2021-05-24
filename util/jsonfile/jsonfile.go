@@ -30,7 +30,7 @@ func Write(filename string, v interface{}) error {
 		return errors.Trace(err)
 	}
 
-	data, err := json.Marshal(v)
+	data, err := json.MarshalIndent(v, "", "	")
 	if err != nil {
 		return errors.Trace(err)
 	}

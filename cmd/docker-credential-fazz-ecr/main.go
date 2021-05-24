@@ -2,17 +2,61 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/payfazz/go-errors/v2"
 
+	"github.com/payfazz/fazz-ecr/util/jsonfile"
 	"github.com/payfazz/fazz-ecr/util/logerr"
 	"github.com/payfazz/fazz-ecr/util/oidctoken"
 )
 
 func main() {
+	if err := errors.Catch(main2); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
+		logerr.Log(err)
+		os.Exit(1)
+	}
+}
+
+func main2() error {
+	if len(os.Args) > 1 && os.Args[1] == "update-config" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		configPath := filepath.Join(home, ".docker", "config.json")
+
+		var config map[string]interface{}
+		if err := jsonfile.Read(configPath, &config); err != nil {
+			return errors.Trace(err)
+		}
+
+		credHelpersMap := config["credHelpers"]
+		if credHelpersMap == nil {
+			credHelpersMap = make(map[string]interface{})
+		}
+		credHelpers, ok := credHelpersMap.(map[string]interface{})
+		if !ok {
+			return errors.New("invalid .credHelpers")
+		}
+
+		credHelpers["322727087874.dkr.ecr.ap-southeast-1.amazonaws.com"] = "fazz-ecr"
+
+		config["credHelpers"] = credHelpers
+		if err := jsonfile.Write(configPath, config); err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	}
+
 	credentials.Serve(h{})
+	return nil
 }
 
 type h struct{}
