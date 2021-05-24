@@ -7,6 +7,7 @@ import (
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/payfazz/go-errors/v2"
 
+	"github.com/payfazz/fazz-ecr/util/logerr"
 	"github.com/payfazz/fazz-ecr/util/oidctoken"
 )
 
@@ -17,7 +18,7 @@ func main() {
 type h struct{}
 
 func (h) Add(*credentials.Credentials) error {
-	return log(errors.New("Not Implemented"))
+	return logerr.Log(errors.New("Not Implemented"))
 }
 
 func (h) Delete(serverURL string) error {
@@ -67,7 +68,7 @@ func (h) Get(serverURL string) (string, string, error) {
 	}
 
 	if err := oidctoken.GetToken(processToken); err != nil {
-		return "", "", log(err)
+		return "", "", logerr.Log(err)
 	}
 
 	item := cache[serverURL]

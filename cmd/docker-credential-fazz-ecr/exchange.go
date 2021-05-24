@@ -14,7 +14,7 @@ import (
 func exchageToken(IDToken string) (types.Cred, error) {
 	var cred types.Cred
 
-	req, err := http.NewRequest("GET", endpoint.Exchange, nil)
+	req, err := http.NewRequest("GET", endpoint.DockerLoginExchange, nil)
 	if err != nil {
 		return types.Cred{}, errors.Trace(err)
 	}

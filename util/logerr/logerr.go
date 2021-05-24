@@ -1,4 +1,4 @@
-package main
+package logerr
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ func init() {
 	}
 }
 
-func log(err error) error {
+func Log(err error) error {
 	if err == nil {
 		return nil
 	}
