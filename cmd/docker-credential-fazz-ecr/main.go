@@ -45,10 +45,6 @@ func main2() error {
 		if !ok {
 			return errors.New("invalid .credHelpers")
 		}
-		if credHelpers == nil {
-			credHelpers = make(map[string]interface{})
-			config["credHelpers"] = credHelpers
-		}
 
 		credHelpers["322727087874.dkr.ecr.ap-southeast-1.amazonaws.com"] = "fazz-ecr"
 
