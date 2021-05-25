@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/payfazz/go-errors/v2"
 
-	"github.com/payfazz/fazz-ecr/cmd/fazz-ecr-aws-lambda/svc/createrepo"
-	"github.com/payfazz/fazz-ecr/cmd/fazz-ecr-aws-lambda/svc/dockerlogin"
+	"github.com/payfazz/fazz-ecr/aws-lambda/fazz-ecr/svc/createrepo"
+	"github.com/payfazz/fazz-ecr/aws-lambda/fazz-ecr/svc/dockerlogin"
 	oidcconfig "github.com/payfazz/fazz-ecr/config/oidc"
 )
 
@@ -49,7 +49,7 @@ func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 				Groups []string `json:"groups"`
 			}
 			if err := json.Unmarshal(jwtBodyRaw, &jwtBody); err != nil {
-				return nil, errors.Trace(err)
+				return resp(400, "invalid token"), nil
 			}
 			if jwtBody.Email == "" {
 				return resp(400, "cannot accept jwt token without email"), nil
@@ -73,7 +73,7 @@ func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 						return nil, errors.Trace(err)
 					}
 				}
-				if err := json.Unmarshal([]byte(inputBody), &repo); err != nil {
+				if err := json.Unmarshal(inputBody, &repo); err != nil {
 					return resp(400, "invalid json body"), nil
 				}
 

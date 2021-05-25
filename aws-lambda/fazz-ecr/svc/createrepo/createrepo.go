@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/payfazz/go-errors/v2"
 
-	iamutil "github.com/payfazz/fazz-ecr/cmd/fazz-ecr-aws-lambda/util/iam"
+	iamutil "github.com/payfazz/fazz-ecr/aws-lambda/fazz-ecr/util/iam"
 	awsconfig "github.com/payfazz/fazz-ecr/config/aws"
 )
 
@@ -28,7 +28,7 @@ func CreateRepoFor(email string, groups []string, repo string) error {
 		return errors.Trace(errAccessDenied)
 	}
 
-	repo = awsconfig.RepoNameOnlyOf(repo)
+	repo = awsconfig.RepositoryNameOf(repo)
 	sess, err := iamutil.EnvSession()
 	if err != nil {
 		return errors.Trace(err)
@@ -39,6 +39,9 @@ func CreateRepoFor(email string, groups []string, repo string) error {
 	_, err = ecrsvc.CreateRepository(&ecr.CreateRepositoryInput{
 		RepositoryName:     aws.String(repo),
 		ImageTagMutability: aws.String(ecr.ImageTagMutabilityImmutable),
+		ImageScanningConfiguration: &ecr.ImageScanningConfiguration{
+			ScanOnPush: aws.Bool(true),
+		},
 	})
 	if err != nil {
 		var err2 awserr.Error

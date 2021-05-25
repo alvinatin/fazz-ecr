@@ -123,7 +123,7 @@ func resourceToRepo(input string) string {
 
 var repoRegex = regexp.MustCompile(`^([^.]*).dkr.ecr.([^.]*).amazonaws.com/(.*)$`)
 
-func RepoNameOnlyOf(input string) string {
+func RepositoryNameOf(input string) string {
 	matches := repoRegex.FindStringSubmatch(input)
 	if len(matches) != 4 {
 		return ""
