@@ -73,7 +73,10 @@ func GetToken(callback func(string) (string, error)) error {
 	}
 
 	serverErrCh := make(chan error, 1)
-	go func() { serverErrCh <- errors.Trace(server.ListenAndServe()) }()
+	errors.Go(
+		func(err error) { serverErrCh <- err },
+		func() error { return errors.Trace(server.ListenAndServe()) },
+	)
 	defer server.Shutdown(context.Background())
 
 	// this is to make sure that server is running first

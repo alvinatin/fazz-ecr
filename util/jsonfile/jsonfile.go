@@ -34,6 +34,9 @@ func Write(filename string, v interface{}) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	if data[len(data)-1] != '\n' {
+		data = append(data, '\n')
+	}
 
 	tempFileName := fmt.Sprintf("%s-%s", filename, randstring.Get(10))
 	defer os.Remove(tempFileName)

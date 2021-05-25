@@ -13,6 +13,7 @@ import (
 
 func main() {
 	if err := errors.Catch(main2); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
 		logerr.Log(err)
 		os.Exit(1)
 	}
@@ -21,15 +22,16 @@ func main() {
 func main2() error {
 	if len(os.Args) != 2 {
 		fmt.Fprintf(os.Stderr, "USAGE: %s <repo-name>\n", os.Args[0])
-		return errors.New("invalid os.Args")
+		os.Exit(1)
 	}
 
 	repo := os.Args[1]
+	repo = strings.TrimPrefix(repo, "https://")
+	repo = strings.Split(repo, ":")[0]
 
 	processToken := func(IDToken string) (string, error) {
 		if err := createRepo(IDToken, repo); err != nil {
-			fmt.Fprintf(os.Stderr, "Error on creating repo %s\n%s\n", repo, err.Error())
-			return "", err
+			return "", errors.Errorf("cannot create repo: %w\n", err)
 		}
 
 		var resp strings.Builder
@@ -38,7 +40,7 @@ func main2() error {
 
 		msg := fmt.Sprintf("Repo %s created", repo)
 		fmt.Fprintf(&resp, "\n%s\n", msg)
-		fmt.Fprintf(os.Stderr, "%s\n", msg)
+		fmt.Printf("%s\n", msg)
 
 		fmt.Fprintf(&resp, "\nYou can now close this window\n")
 

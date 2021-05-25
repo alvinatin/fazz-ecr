@@ -39,15 +39,19 @@ func main2() error {
 		credHelpersMap := config["credHelpers"]
 		if credHelpersMap == nil {
 			credHelpersMap = make(map[string]interface{})
+			config["credHelpers"] = credHelpersMap
 		}
 		credHelpers, ok := credHelpersMap.(map[string]interface{})
 		if !ok {
 			return errors.New("invalid .credHelpers")
 		}
+		if credHelpers == nil {
+			credHelpers = make(map[string]interface{})
+			config["credHelpers"] = credHelpers
+		}
 
 		credHelpers["322727087874.dkr.ecr.ap-southeast-1.amazonaws.com"] = "fazz-ecr"
 
-		config["credHelpers"] = credHelpers
 		if err := jsonfile.Write(configPath, config); err != nil {
 			return errors.Trace(err)
 		}
@@ -83,6 +87,9 @@ func (h) List() (map[string]string, error) {
 }
 
 func (h) Get(serverURL string) (string, string, error) {
+	serverURL = strings.TrimPrefix(serverURL, "https://")
+	serverURL = strings.Split(serverURL, "/")[0]
+
 	cache := loadCache()
 
 	if item, ok := cache[serverURL]; ok {
@@ -101,7 +108,7 @@ func (h) Get(serverURL string) (string, string, error) {
 		var resp strings.Builder
 		fmt.Fprintf(&resp, "docker-credential-fazz-ecr\n")
 		fmt.Fprintf(&resp, "==========================\n")
-		fmt.Fprintf(&resp, "\nYou are now logged in into registry %s\n", strings.TrimPrefix(serverURL, "https://"))
+		fmt.Fprintf(&resp, "\nYou are now logged in into registry %s\n", serverURL)
 		fmt.Fprintf(&resp, "\nYou should have push/pull permission for following repositories:\n")
 		for _, v := range result.Access {
 			fmt.Fprintf(&resp, "- %s\n", v)

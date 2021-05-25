@@ -16,26 +16,26 @@ func exchageToken(IDToken string) (types.Cred, error) {
 
 	req, err := http.NewRequest("GET", endpoint.DockerLoginExchange, nil)
 	if err != nil {
-		return types.Cred{}, errors.Trace(err)
+		return cred, errors.Trace(err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", IDToken))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return types.Cred{}, errors.Trace(err)
+		return cred, errors.Trace(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return types.Cred{}, errors.Errorf("exchange endpoint returning http code: %d", resp.StatusCode)
+		return cred, errors.Errorf("exchange endpoint returning http code: %d", resp.StatusCode)
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&cred); err != nil {
-		return types.Cred{}, errors.Trace(err)
+		return cred, errors.Trace(err)
 	}
 
 	if cred.User == "" || cred.Pass == "" {
-		return types.Cred{}, errors.Errorf("username or password is empty from exchange endpoint")
+		return cred, errors.Errorf("username or password is empty from exchange endpoint")
 	}
 
 	return cred, nil
