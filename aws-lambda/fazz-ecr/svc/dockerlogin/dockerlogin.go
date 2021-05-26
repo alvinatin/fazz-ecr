@@ -72,7 +72,7 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 		if err != nil {
 			return errors.Trace(err)
 		}
-		if *result.Role.Arn != roleArn {
+		if aws.StringValue(result.Role.Arn) != roleArn {
 			return errors.New("created role arn didn't match")
 		}
 		return nil
@@ -91,7 +91,7 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 			},
 			func(r interface{}) error {
 				roleResult := r.(*iam.GetRoleOutput)
-				if *roleResult.Role.Arn != roleArn {
+				if aws.StringValue(roleResult.Role.Arn) != roleArn {
 					return errors.New("existing role arn didn't match")
 				}
 				_, err := iamsvc.PutRolePolicy(&iam.PutRolePolicyInput{
@@ -123,7 +123,7 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 			},
 			func(r interface{}) error {
 				rolePolicyResult := r.(*iam.GetRolePolicyOutput)
-				doc, err := url.QueryUnescape(*rolePolicyResult.PolicyDocument)
+				doc, err := url.QueryUnescape(aws.StringValue(rolePolicyResult.PolicyDocument))
 				if err != nil {
 					return errors.Trace(err)
 				}
@@ -137,9 +137,9 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 				}
 
 				assumedSession := envSession.Copy(aws.NewConfig().WithCredentials(credentials.NewStaticCredentials(
-					*assumeRoleResult.Credentials.AccessKeyId,
-					*assumeRoleResult.Credentials.SecretAccessKey,
-					*assumeRoleResult.Credentials.SessionToken,
+					aws.StringValue(assumeRoleResult.Credentials.AccessKeyId),
+					aws.StringValue(assumeRoleResult.Credentials.SecretAccessKey),
+					aws.StringValue(assumeRoleResult.Credentials.SessionToken),
 				)))
 
 				ecrsvc := ecr.New(assumedSession)
@@ -148,7 +148,9 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 					return errors.Trace(err)
 				}
 
-				token, err := base64.StdEncoding.DecodeString(*authTokenResult.AuthorizationData[0].AuthorizationToken)
+				token, err := base64.StdEncoding.DecodeString(
+					aws.StringValue(authTokenResult.AuthorizationData[0].AuthorizationToken),
+				)
 				if err != nil {
 					return errors.Trace(err)
 				}
