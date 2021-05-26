@@ -47,6 +47,11 @@ func getJwtKeyByID(kid string) (*jose.JSONWebKey, error) {
 		return nil, nil
 	}
 
+	checkAgain = time.Now().Add(5 * time.Minute)
+
+	ctx, canceCtx := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer canceCtx()
+
 	u, err := url.Parse(oidcconfig.Issuer)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -59,7 +64,11 @@ func getJwtKeyByID(kid string) (*jose.JSONWebKey, error) {
 	}
 	u, _ = u.Parse(path.Join(u.EscapedPath(), ".well-known/openid-configuration"))
 
-	resp, err := http.Get(u.String())
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -81,35 +90,32 @@ func getJwtKeyByID(kid string) (*jose.JSONWebKey, error) {
 		return nil, errors.Errorf("oidc config issuer is not match")
 	}
 
-	jwkURL, err := url.Parse(config.JwksURI)
+	u, err = url.Parse(config.JwksURI)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	if jwkURL.Scheme != "https" {
+	if u.Scheme != "https" {
 		return nil, errors.Errorf("jwks_uri endpoint must use https")
 	}
 
-	req, err := http.NewRequest("GET", config.JwksURI, nil)
+	req, err = http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	ctx, cancelFn := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancelFn()
-	res, err := http.DefaultClient.Do(req.WithContext(ctx))
+	resp, err = http.DefaultClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	if res.StatusCode != 200 {
+	if resp.StatusCode != 200 {
 		return nil, errors.Errorf("jwks_uri endpoint returning http code: %d", resp.StatusCode)
 	}
-	defer res.Body.Close()
+	defer resp.Body.Close()
 
-	if err := json.NewDecoder(res.Body).Decode(&cache.keys); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&cache.keys); err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	checkAgain = time.Now().Add(5 * time.Minute)
 	keys = cache.keys.Key(kid)
 	if len(keys) != 0 {
 		return &keys[0], nil
