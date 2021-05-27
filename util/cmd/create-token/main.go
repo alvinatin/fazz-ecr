@@ -56,7 +56,8 @@ func main2() error {
 		return errors.Trace(err)
 	}
 
-	fmt.Println(token)
+	fmt.Printf("statickey: %s\n", statickey)
+	fmt.Printf("jwttoken: %s\n", token)
 
 	return nil
 }
