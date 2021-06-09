@@ -56,7 +56,16 @@ func normalize(value string) string {
 	return value
 }
 
-func repoFor(namespace string) string {
+var groupRegex = regexp.MustCompile(`^auth-([^@]*)@fazzfinancial.com$`)
+
+func repoFor(namespace string, isGroup bool) string {
+	if isGroup {
+		match := groupRegex.FindStringSubmatch(namespace)
+		if len(match) != 2 {
+			return ""
+		}
+		namespace = match[1]
+	}
 	return fmt.Sprintf(repoTemplate, normalize(namespace))
 }
 
@@ -82,9 +91,12 @@ func RoleArnFor(email string) string {
 
 func PolicyDocumentFor(email string, groups []string) string {
 	resourceSet := make(map[string]struct{})
-	resourceSet[repoFor(email)] = struct{}{}
+	resourceSet[repoFor(email, false)] = struct{}{}
 	for _, g := range groups {
-		resourceSet[repoFor(g)] = struct{}{}
+		pat := repoFor(g, true)
+		if pat != "" {
+			resourceSet[pat] = struct{}{}
+		}
 	}
 	resources := make([]string, 0, len(resourceSet))
 	for k := range resourceSet {
