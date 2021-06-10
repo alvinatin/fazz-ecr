@@ -13,8 +13,8 @@ import (
 
 func main() {
 	if err := errors.Catch(main2); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
 		logerr.Log(err)
+		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
 		os.Exit(1)
 	}
 }

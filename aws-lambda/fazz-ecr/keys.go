@@ -39,6 +39,9 @@ func getJwtKeyByID(kid string) (*jose.JSONWebKey, error) {
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
 
+	keys = cache.keys.Key(kid)
+	checkAgain = cache.checkAgain
+
 	if len(keys) != 0 {
 		return &keys[0], nil
 	}
@@ -47,7 +50,7 @@ func getJwtKeyByID(kid string) (*jose.JSONWebKey, error) {
 		return nil, nil
 	}
 
-	checkAgain = time.Now().Add(5 * time.Minute)
+	cache.checkAgain = time.Now().Add(5 * time.Minute)
 
 	ctx, canceCtx := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer canceCtx()
