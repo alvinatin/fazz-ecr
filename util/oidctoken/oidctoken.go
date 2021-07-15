@@ -25,6 +25,10 @@ func GetToken(callback func(string) (string, error)) error {
 		return err
 	}
 
+	if os.Getenv("CI") != "" {
+		return errors.New("empty FAZZ_ECR_TOKEN is not supported in CI environment")
+	}
+
 	cache := loadTokenCache()
 
 	if v, ok := cache[oidcconfig.Issuer]; ok {
