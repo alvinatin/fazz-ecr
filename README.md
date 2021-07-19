@@ -12,3 +12,5 @@ run `docker-credential-fazz-ecr update-config`, this will update your `~/docker/
 
 ## how to use in github action
 use `payfazz/setup-fazz-ecr-action@v1` action
+
+because CI environment is not interactive, you must provide `FAZZ_ECR_TOKEN` env
