@@ -15,14 +15,14 @@ import (
 )
 
 func main() {
-	if err := errors.Catch(main2); err != nil {
+	if err := errors.Catch(run); err != nil {
 		logerr.Log(err)
 		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
 		os.Exit(1)
 	}
 }
 
-func main2() error {
+func run() error {
 	if len(os.Args) > 1 && os.Args[1] == "update-config" {
 		home, err := os.UserHomeDir()
 		if err != nil {
