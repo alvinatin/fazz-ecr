@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,7 +17,8 @@ import (
 func main() {
 	if err := errors.Catch(run); err != nil {
 		logerr.Log(err)
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
+		os.Exit(1)
 	}
 }
 
