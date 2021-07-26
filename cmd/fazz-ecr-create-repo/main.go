@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -12,17 +13,15 @@ import (
 )
 
 func main() {
-	if err := errors.Catch(main2); err != nil {
+	if err := errors.Catch(run); err != nil {
 		logerr.Log(err)
-		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }
 
-func main2() error {
+func run() error {
 	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "USAGE: %s <repo-name>\n", os.Args[0])
-		os.Exit(1)
+		log.Fatalf("USAGE: %s <repo-name>\n", os.Args[0])
 	}
 
 	repo := os.Args[1]
