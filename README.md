@@ -1,16 +1,19 @@
 # fazz-ecr
-Tooling for accessing ecr docker registry `322727087874.dkr.ecr.ap-southeast-1.amazonaws.com`
+Tools for interacting with the ECR Docker registry `322727087874.dkr.ecr.ap-southeast-1.amazonaws.com`.
 
-this repo provide 2 utility, `docker-credential-fazz-ecr` docker credential helper, and `fazz-ecr-create-repo` to create repository
+This repo provide two utilities:
+- `docker-credential-fazz-ecr`: Credential helper for Docker client.
+- `fazz-ecr-create-repo`: Helper to create new repository on the `322727087874.dkr.ecr.ap-southeast-1.amazonaws.com` registry.
 
-access permission is managed by google groups
+User permissions to repositories are determined by membership of Google groups.
 
-## how to install
-run `go go install github.com/payfazz/fazz-ecr/cmd/...@latest`, this will install `docker-credential-fazz-ecr` and `fazz-ecr-create-repo` in your GOBIN directory
+## How to install
+Run `go install github.com/payfazz/fazz-ecr/cmd/...@latest` to install both utilities in your `$GOBIN`.
 
-run `docker-credential-fazz-ecr update-config`, this will update your `~/docker/config.json`
+## Quickstart
+- Run `docker-credential-fazz-ecr update-config`. If `{HOME}/.config/docker/config.json` doesn't exist, create the file with `{}` (this is empty JSON object) content, and then run the command again.
 
-## how to use in github action
-use `payfazz/setup-fazz-ecr-action@v1` action
+- Create a new repository with command `fazz-ecr-create-repo 322727087874.dkr.ecr.ap-southeast-1.amazonaws.com/{owner}/{repository_name}`, where `{owner}` is your email or group name but all characters outside the `a-zA-Z0-9-_` regex is replaced with `-`. For example, if your email is `win@payfazz.com`, you can create a repository with this command `fazz-ecr-create-repo 322727087874.dkr.ecr.ap-southeast-1.amazonaws.com/win-payfazz-com/example-service`.
 
-because CI environment is not interactive, you must provide `FAZZ_ECR_TOKEN` env
+## How to use in GitHub Actions
+Use `payfazz/setup-fazz-ecr-action@v1` action in your workflow file. Because CI environment is not interactive, `FAZZ_ECR_TOKEN` environment variable must be set.
