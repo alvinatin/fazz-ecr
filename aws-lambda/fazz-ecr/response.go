@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/payfazz/fazz-ecr/pkg/types"
 	"github.com/payfazz/go-errors/v2"
+
+	"github.com/payfazz/fazz-ecr/pkg/types"
 )
 
 func resp(status int, msg string) []byte {

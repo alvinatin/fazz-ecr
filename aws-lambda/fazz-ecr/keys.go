@@ -28,6 +28,7 @@ func getJwtKeyByID(kid string) (*jose.JSONWebKey, error) {
 	checkAgain := cache.checkAgain
 	cache.mu.RUnlock()
 
+	// multiple key with same kid is not supported
 	if len(keys) != 0 {
 		return &keys[0], nil
 	}

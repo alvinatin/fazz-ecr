@@ -47,9 +47,10 @@ func run() error {
 	_, err = ddbsvc.PutItem(&dynamodb.PutItemInput{
 		TableName: aws.String(awsconfig.StaticKeyTableName()),
 		Item: map[string]*dynamodb.AttributeValue{
-			"id":     {S: aws.String(statickey)},
-			"email":  {S: aws.String(email)},
-			"groups": {SS: aws.StringSlice(groups)},
+			"id":       {S: aws.String(statickey)},
+			"email":    {S: aws.String(email)},
+			"groups":   {SS: aws.StringSlice(groups)},
+			"jwttoken": {S: aws.String(token)},
 		},
 	})
 	if err != nil {

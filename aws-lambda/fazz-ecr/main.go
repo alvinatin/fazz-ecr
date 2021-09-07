@@ -20,7 +20,7 @@ func main() {
 
 type h struct{}
 
-func (h h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
+func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 	doInvoke := func() ([]byte, error) {
 		var input events.APIGatewayV2HTTPRequest
 		if err := json.Unmarshal(payload, &input); err != nil {
