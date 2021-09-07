@@ -37,6 +37,8 @@ func run() error {
 		return updateConfig()
 	case "login":
 		return login()
+	case "list-access":
+		return listAccess()
 	case "get":
 		return credentials.HandleCommand(h{}, os.Args[1], os.Stdin, os.Stdout)
 	default:
@@ -45,7 +47,7 @@ func run() error {
 }
 
 func usage() error {
-	fmt.Fprintf(os.Stderr, "Usage: %s <update-config|login|get>\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "Usage: %s <update-config|login|list-access|get>\n", os.Args[0])
 	os.Exit(1)
 	return nil
 }
@@ -135,6 +137,16 @@ func (h) Get(serverURL string) (string, string, error) {
 
 	item := cache[serverURL]
 	return item.User, item.Pass, nil
+}
+
+func listAccess() error {
+	c := loadCache()
+	for _, v := range c {
+		for _, r := range v.Access {
+			fmt.Println(r)
+		}
+	}
+	return nil
 }
 
 type h struct{}
