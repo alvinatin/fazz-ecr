@@ -26,8 +26,8 @@ func Log(err error) error {
 	}
 
 	if logFile != nil {
-		fmt.Fprintf(logFile, "%v\n%s\n\n",
-			time.Now(),
+		fmt.Fprintf(logFile, "%s\n%s\n\n",
+			time.Now().Format(time.RFC3339Nano),
 			errors.FormatWithFilterPkgs(err,
 				"main",
 				"github.com/payfazz/fazz-ecr",

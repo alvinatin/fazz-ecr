@@ -14,14 +14,14 @@ import (
 func main() {
 	if err := errors.Catch(run); err != nil {
 		logerr.Log(err)
-		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 		os.Exit(1)
 	}
 }
 
 func run() error {
 	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "USAGE: %s <repo-name>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <repo-name>\n", os.Args[0])
 		os.Exit(1)
 	}
 

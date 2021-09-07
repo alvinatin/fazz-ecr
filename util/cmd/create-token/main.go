@@ -16,21 +16,21 @@ import (
 )
 
 func main() {
-	if err := errors.Catch(main2); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
+	if err := errors.Catch(run); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 		logerr.Log(err)
 		os.Exit(1)
 	}
 }
 
-func main2() error {
+func run() error {
 	envSession, err := iam.EnvSession()
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "USAGE: %s namespace1 [namespace2...]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s namespace1 [namespace2...]\n", os.Args[0])
 		os.Exit(1)
 	}
 

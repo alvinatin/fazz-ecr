@@ -20,13 +20,15 @@ import (
 )
 
 func GetToken(callback func(string) (string, error)) error {
+	// this funciton is not thread-safe, do not call it from multiple go routine at the same time
+
 	if token := os.Getenv("FAZZ_ECR_TOKEN"); token != "" {
 		_, err := callback(token)
 		return err
 	}
 
 	if os.Getenv("CI") != "" {
-		return errors.New("empty FAZZ_ECR_TOKEN is not supported in CI environment")
+		return errors.New("empty FAZZ_ECR_TOKEN enviroment variable is not supported in CI environment")
 	}
 
 	cache := loadTokenCache()
@@ -39,6 +41,13 @@ func GetToken(callback func(string) (string, error)) error {
 	redirect := fmt.Sprintf("http://localhost:%d", oidcconfig.CallbackPort)
 	state := randstring.Get(16)
 
+	provider := loadProviderCache()
+
+	auth, err := provider.getAuthUri(oidcconfig.Issuer, oidcconfig.ClientID, redirect, state)
+	if err != nil {
+		return err
+	}
+
 	handled := uint32(0)
 
 	type resp struct {
@@ -50,7 +59,7 @@ func GetToken(callback func(string) (string, error)) error {
 	respCh := make(chan resp, 1)
 
 	server := http.Server{
-		Addr: fmt.Sprintf("localhost:%d", oidcconfig.CallbackPort),
+		Addr: strings.TrimPrefix(redirect, "http://"),
 		Handler: handler.Of(func(r *http.Request) http.HandlerFunc {
 			if r.URL.EscapedPath() != "/" {
 				return defresponse.Status(404)
@@ -88,13 +97,6 @@ func GetToken(callback func(string) (string, error)) error {
 	case err := <-serverErrCh:
 		return err
 	case <-time.After(500 * time.Millisecond):
-	}
-
-	provider := loadProviderCache()
-
-	auth, err := provider.getAuthUri(oidcconfig.Issuer, oidcconfig.ClientID, redirect, state)
-	if err != nil {
-		return err
 	}
 
 	openBrowser(auth)

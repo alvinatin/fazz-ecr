@@ -17,6 +17,7 @@ func createRepo(IDToken string, repo string) error {
 		return errors.Trace(err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", IDToken))
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
