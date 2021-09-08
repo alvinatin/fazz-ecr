@@ -18,7 +18,7 @@ utilities in your `$GOBIN`.
 
 ## Quickstart
 
-- Run `docker-credential-fazz-ecr update-config`. If `{HOME}/./config.json`
+- Run `docker-credential-fazz-ecr update-config`. If `{HOME}/.docker/config.json`
   doesn't exist, create the file with `{}` (this is empty JSON object) content,
   and then run the command again.
 
