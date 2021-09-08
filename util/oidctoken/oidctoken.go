@@ -32,16 +32,42 @@ func GetToken(callback func(string) (string, error)) error {
 	}
 
 	cache := loadTokenCache()
+	provider := loadProviderCache()
 
 	if v, ok := cache[oidcconfig.Issuer]; ok {
-		_, err := callback(v.IDToken)
-		return err
+		if time.Now().Unix() < v.Exp {
+			_, err := callback(v.IDToken)
+			return err
+		}
+		if refresh := v.RefreshToken; refresh != "" {
+			if cont, err := func() (bool, error) {
+				token, refresh, err := provider.refreshIDToken(oidcconfig.Issuer, oidcconfig.ClientID, refresh)
+				if err != nil {
+					return true, err
+				}
+
+				exp, err := getTokenExp(token)
+				if err != nil {
+					return true, err
+				}
+
+				cache[oidcconfig.Issuer] = tokenCacheItem{
+					IDToken:      token,
+					RefreshToken: refresh,
+					Exp:          exp,
+				}
+				cache.save()
+
+				_, err = callback(token)
+				return false, err
+			}(); !cont {
+				return err
+			}
+		}
 	}
 
 	redirect := fmt.Sprintf("http://localhost:%d", oidcconfig.CallbackPort)
 	state := randstring.Get(16)
-
-	provider := loadProviderCache()
 
 	auth, err := provider.getAuthUri(oidcconfig.Issuer, oidcconfig.ClientID, redirect, state)
 	if err != nil {
@@ -55,13 +81,21 @@ func GetToken(callback func(string) (string, error)) error {
 		status int
 	}
 
+	loginHitCh := make(chan struct{}, 1)
 	codeCh := make(chan string, 1)
 	respCh := make(chan resp, 1)
 
 	server := http.Server{
 		Addr: strings.TrimPrefix(redirect, "http://"),
 		Handler: handler.Of(func(r *http.Request) http.HandlerFunc {
-			if r.URL.EscapedPath() != "/" {
+			path := r.URL.EscapedPath()
+			if path == "/login" {
+				select {
+				case loginHitCh <- struct{}{}:
+				default:
+				}
+				return defresponse.Redirect(302, auth)
+			} else if path != "/" {
 				return defresponse.Status(404)
 			}
 
@@ -99,34 +133,34 @@ func GetToken(callback func(string) (string, error)) error {
 	case <-time.After(500 * time.Millisecond):
 	}
 
-	openBrowser(auth)
+	loginLink := fmt.Sprintf("http://%s/login", server.Addr)
+	if err := openBrowser(loginLink); err != nil {
+		return errors.Trace(err)
+	}
+
+	select {
+	case err := <-serverErrCh:
+		return err
+	case <-time.After(10 * time.Second):
+		return errors.Errorf("%s is not opened after 10 second", loginLink)
+	case <-loginHitCh:
+	}
 
 	processCode := func(code string) (string, error) {
-		token, err := provider.getIDToken(oidcconfig.Issuer, oidcconfig.ClientID, redirect, code)
+		token, refresh, err := provider.getIDToken(oidcconfig.Issuer, oidcconfig.ClientID, redirect, code)
 		if err != nil {
 			return "", err
 		}
 
-		tokenParts := strings.Split(token, ".")
-		if len(tokenParts) < 2 {
-			return "", errors.Errorf("invalid token from oidc")
-		}
-
-		tokenBodyRaw, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
+		exp, err := getTokenExp(token)
 		if err != nil {
-			return "", errors.Trace(err)
-		}
-
-		var tokenBody struct {
-			Exp int64 `json:"exp"`
-		}
-		if err := json.Unmarshal(tokenBodyRaw, &tokenBody); err != nil {
-			return "", errors.Trace(err)
+			return "", err
 		}
 
 		cache[oidcconfig.Issuer] = tokenCacheItem{
-			IDToken: token,
-			Exp:     tokenBody.Exp,
+			IDToken:      token,
+			RefreshToken: refresh,
+			Exp:          exp,
 		}
 		cache.save()
 
@@ -152,4 +186,25 @@ func GetToken(callback func(string) (string, error)) error {
 		}
 		return err
 	}
+}
+
+func getTokenExp(token string) (int64, error) {
+	tokenParts := strings.Split(token, ".")
+	if len(tokenParts) < 2 {
+		return 0, errors.Errorf("invalid token from oidc")
+	}
+
+	tokenBodyRaw, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
+	if err != nil {
+		return 0, errors.Trace(err)
+	}
+
+	var tokenBody struct {
+		Exp int64 `json:"exp"`
+	}
+	if err := json.Unmarshal(tokenBodyRaw, &tokenBody); err != nil {
+		return 0, errors.Trace(err)
+	}
+
+	return tokenBody.Exp - 10, nil
 }

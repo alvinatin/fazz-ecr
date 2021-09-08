@@ -134,16 +134,29 @@ func (c providerCache) getAuthUri(issuer string, clientID string, redirect strin
 	q.Set("client_id", clientID)
 	q.Set("response_type", "code")
 	q.Set("redirect_uri", redirect)
-	q.Set("scope", "openid email groups")
+	q.Set("scope", "openid email groups offline_access")
 	q.Set("state", state)
 
 	u.RawQuery = q.Encode()
 	return u.String(), nil
 }
 
-func (c providerCache) getIDToken(issuer string, clientID string, redirect string, code string) (string, error) {
+func (c providerCache) refreshIDToken(issuer string, clientID string, refreshToken string) (string, string, error) {
 	if err := c.ensure(issuer); err != nil {
-		return "", err
+		return "", "", err
+	}
+
+	q := make(url.Values)
+	q.Set("client_id", clientID)
+	q.Set("grant_type", "refresh_token")
+	q.Set("refresh_token", refreshToken)
+
+	return requestToken(c[issuer].TokenURL, q)
+}
+
+func (c providerCache) getIDToken(issuer string, clientID string, redirect string, code string) (string, string, error) {
+	if err := c.ensure(issuer); err != nil {
+		return "", "", err
 	}
 
 	q := make(url.Values)
@@ -152,26 +165,31 @@ func (c providerCache) getIDToken(issuer string, clientID string, redirect strin
 	q.Set("redirect_uri", redirect)
 	q.Set("code", code)
 
+	return requestToken(c[issuer].TokenURL, q)
+}
+
+func requestToken(url string, body url.Values) (string, string, error) {
 	resp, err := http.Post(
-		c[issuer].TokenURL,
+		url,
 		"application/x-www-form-urlencoded",
-		strings.NewReader(q.Encode()),
+		strings.NewReader(body.Encode()),
 	)
 	if err != nil {
-		return "", errors.Trace(err)
+		return "", "", errors.Trace(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return "", errors.Errorf("token url endpoint returning http code: %d", resp.StatusCode)
+		return "", "", errors.Errorf("token url endpoint returning http code: %d", resp.StatusCode)
 	}
 
 	var result struct {
-		IDToken string `json:"id_token"`
+		IDToken      string `json:"id_token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", errors.Trace(err)
+		return "", "", errors.Trace(err)
 	}
 
-	return result.IDToken, nil
+	return result.IDToken, result.RefreshToken, nil
 }
