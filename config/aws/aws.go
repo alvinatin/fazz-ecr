@@ -1,5 +1,7 @@
 package aws
 
+// TODO (win): do proper config, currently it is harcoded
+
 import (
 	"crypto/sha256"
 	"encoding/base32"
