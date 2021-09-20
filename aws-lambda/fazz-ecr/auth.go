@@ -24,11 +24,12 @@ func getAuth(token string) (string, []string, error) {
 		return "", nil, nil
 	}
 
-	if jws.Signatures[0].Header.ExtraHeaders["typ"] == "statickey" {
+	switch jws.Signatures[0].Header.ExtraHeaders["typ"] {
+	case "statickey":
 		return authFromStaticKey(jws)
+	default:
+		return authFromJwt(jws)
 	}
-
-	return authFromJwt(jws)
 }
 
 func authFromStaticKey(jwt *jose.JSONWebSignature) (string, []string, error) {

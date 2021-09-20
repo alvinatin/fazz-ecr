@@ -60,7 +60,7 @@ func (h) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 
 			if err := createrepo.CreateRepoFor(email, groups, repo); err != nil {
 				if createrepo.IsAccessDenied(err) {
-					return resp(403, "Access Denied"), nil
+					return resp(403, "access Denied"), nil
 				}
 				return nil, err
 			}

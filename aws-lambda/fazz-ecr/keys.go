@@ -40,6 +40,8 @@ func getJwtKeyByID(kid string) (*jose.JSONWebKey, error) {
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
 
+	// recheck condition after acquiring write lock
+
 	keys = cache.keys.Key(kid)
 	checkAgain = cache.checkAgain
 
