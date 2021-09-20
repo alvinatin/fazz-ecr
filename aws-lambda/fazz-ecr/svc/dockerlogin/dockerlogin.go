@@ -3,6 +3,7 @@ package dockerlogin
 import (
 	"encoding/base64"
 	"net/url"
+	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,6 +27,8 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 
 	roleName := awsconfig.RoleNameFor(email)
 	roleArn := awsconfig.RoleArnFor(email)
+	policyDoc := awsconfig.PolicyDocumentFor(email, groups)
+	allowedAcess := awsconfig.RepoListPatternFromPolicyDoc(policyDoc)
 
 	iamsvc := iam.New(envSession)
 	stssvc := sts.New(envSession)
@@ -97,7 +100,7 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 				_, err := iamsvc.PutRolePolicy(&iam.PutRolePolicyInput{
 					RoleName:       aws.String(roleName),
 					PolicyName:     aws.String(awsconfig.InlinePolicyName()),
-					PolicyDocument: aws.String(awsconfig.PolicyDocumentFor(email, groups)),
+					PolicyDocument: aws.String(policyDoc),
 				})
 				if err != nil {
 					return errors.Trace(err)
@@ -126,6 +129,13 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 				doc, err := url.QueryUnescape(aws.StringValue(rolePolicyResult.PolicyDocument))
 				if err != nil {
 					return errors.Trace(err)
+				}
+
+				cachedAllowedAccess := awsconfig.RepoListPatternFromPolicyDoc(doc)
+				if !sameStringSet(cachedAllowedAccess, allowedAcess) {
+					if err := createRolePolicy(); err != nil {
+						return errors.Trace(err)
+					}
 				}
 
 				assumeRoleResult, err := stssvc.AssumeRole(&sts.AssumeRoleInput{
@@ -158,7 +168,7 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 
 				cred.User = tokenParts[0]
 				cred.Pass = tokenParts[1]
-				cred.Access = awsconfig.RepoListPatternFromPolicyDoc(doc)
+				cred.Access = allowedAcess
 				cred.Exp = authTokenResult.AuthorizationData[0].ExpiresAt.Unix()
 
 				return nil
@@ -173,4 +183,22 @@ func GetCredFor(email string, groups []string) (cred types.Cred, err error) {
 	}
 
 	return cred, nil
+}
+
+// caution: this function will sort a and b
+func sameStringSet(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	sort.Strings(a)
+	sort.Strings(b)
+
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
 }
