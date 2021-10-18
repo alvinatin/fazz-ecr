@@ -28,6 +28,8 @@ utilities in your `$GOBIN`.
   `a-zA-Z0-9-_` regex is replaced with `-`. For example, if your email is
   `win@payfazz.com`, you can create a repository with this command
   `fazz-ecr-create-repo 322727087874.dkr.ecr.ap-southeast-1.amazonaws.com/win-payfazz-com/example-service`.
+  For Group, it will derived from `auth-*@fazzfinancial.com`, For example, if you are member of group `auth-shopfazz@fazzfinancial.com`,
+  you will have access to `322727087874.dkr.ecr.ap-southeast-1.amazonaws.com/shopfazz/*`
 
 ## How to use in GitHub Actions
 
